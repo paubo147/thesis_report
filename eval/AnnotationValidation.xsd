@@ -1,0 +1,135 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <xsd:element name="annotations" type="annotationsType"/>
+
+  <xsd:complexType name="annotationsType">
+    <xsd:sequence>
+      <xsd:element name="solver" type="solverType"/>
+      <xsd:element name="dataTypeAnnotations" type="dataTypeAnnotationsType"/>
+      <xsd:element name="strategy" type="strategyType"/>
+      <xsd:element name="staticTree" type="staticTreeType"/>
+      <xsd:element name="output" type="outputType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <xsd:complexType name="solverType">
+    <xsd:sequence>
+      <xsd:element name="path" type="xsd:string" maxOccurs="1"/>
+      <xsd:element name="inputFileName" type="xsd:string" maxOccurs="1"/>
+      <xsd:element name="arg" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <xsd:complexType name="dataTypeAnnotationsType">
+    <xsd:sequence>
+      <xsd:element name="stringLists" type="stringListsType" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="cardinality" type="cardinalityType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="dependency" type="dependencyType" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+ 
+  <xsd:complexType name="stringListsType">
+    <xsd:sequence>
+      <xsd:element name="stringListMapping" minOccurs="0" maxOccurs="unbounded">
+	<xsd:complexType>
+	  <xsd:simpleContent>
+	    <xsd:extension base="xsd:string">
+	      <xsd:attribute name="file" use="required"></xsd:attribute>
+	    </xsd:extension>
+	  </xsd:simpleContent>
+	</xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="cardinalityType">
+    <xsd:sequence>
+      <xsd:choice minOccurs="0">
+	<xsd:sequence>
+	  <xsd:element name="min" type="xsd:int" minOccurs="1"/>
+	  <xsd:element name="max" type="xsd:int" minOccurs="1"/>
+	</xsd:sequence>
+	<xsd:element name="fixed" type="xsd:int"/>
+      </xsd:choice>
+     
+    </xsd:sequence>
+    <xsd:attribute name="from" type="xsd:string" use="required"/>
+    <xsd:attribute name="to" type="xsd:string" use="required"/>
+ </xsd:complexType>
+
+ <xsd:complexType name="dependencyType">
+  <xsd:sequence>
+   <xsd:element name="class" type="xsd:string" maxOccurs="1"/>
+   <xsd:element name="xpath" type="xsd:string" maxOccurs="1"/>
+  </xsd:sequence>
+ </xsd:complexType>
+
+ <xsd:complexType name="strategyType">
+   <xsd:sequence>
+     <xsd:element name="skipFactor">
+       <xsd:simpleType>
+	 <xsd:union>
+	   <xsd:simpleType>
+	     <xsd:restriction base="xsd:float">
+	       <xsd:minExclusive value="0"/>
+	       <xsd:maxInclusive value="1"/>
+	     </xsd:restriction>
+	   </xsd:simpleType>
+	   <xsd:simpleType>
+	     <xsd:restriction base="xsd:string">
+	       <xsd:pattern value="ALL"/>
+	     </xsd:restriction>
+	   </xsd:simpleType>
+	 </xsd:union>
+       </xsd:simpleType>
+     </xsd:element>
+     <xsd:element name="numberOfTestCases" type="xsd:int" minOccurs="0"/>
+   </xsd:sequence>
+ </xsd:complexType>
+
+ <xsd:complexType name="staticTreeType">
+  <xsd:sequence>
+   <xsd:element name="class">
+     <xsd:complexType>
+       <xsd:complexContent>
+	 <xsd:extension base="classType">
+	   <xsd:attribute name="name" type="xsd:string"/>
+	   <xsd:attribute name="mimName" type="xsd:string"/>
+	 </xsd:extension>
+       </xsd:complexContent>
+     </xsd:complexType>
+   </xsd:element>
+   <xsd:element name="relation" type="relationType"/>
+  </xsd:sequence>
+ </xsd:complexType>
+
+ <xsd:complexType name="classType">
+  <xsd:sequence minOccurs="0" maxOccurs="unbounded">
+   <xsd:element name="class">
+     <xsd:complexType>
+       <xsd:complexContent>
+	 <xsd:extension base="classType">
+	   <xsd:attribute name="name" type="xsd:string"/>
+	   <xsd:attribute name="mimName" type="xsd:string"/>
+	 </xsd:extension>
+       </xsd:complexContent>
+     </xsd:complexType>
+   </xsd:element>
+  </xsd:sequence>
+ </xsd:complexType>
+
+ <xsd:complexType name="relationType">
+  <xsd:all>
+   <xsd:element name="parent" type="xsd:string"/>
+   <xsd:element name="child" type="xsd:string"/>
+   <xsd:element name="cardinality" type="xsd:int"/>
+  </xsd:all>
+ </xsd:complexType>
+
+ <xsd:complexType name="outputType">
+   <xsd:sequence>
+    <xsd:element name="testCases" type="xsd:string" minOccurs="1"/>
+    <xsd:element name="unsat" type="xsd:string" minOccurs="0"/>
+    
+   </xsd:sequence>
+ </xsd:complexType>
+</xsd:schema>

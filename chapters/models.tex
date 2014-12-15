@@ -1,0 +1,406 @@
+\chapter{The Ericsson Common Information Model (ECIM)}\label{chap:ecim}
+
+The purpose of the ECIM is primarily the support of operations and maintenance on a managed object. Such a managed object is a conceptual view of a resource such as a network component, a host system or an application. Thus, it does not only mark the boundaries of the allowed descriptions on the running software, but moreover the specification for different components of the software. \\
+
+This means, that development teams use the models to implement the system and to have a static specification of the system. However, since the main purpose of this work is the automated generation of configurations, we will use them exclusively for this purpose. Configurations are usually inserted into the \emph{configuration manager}, the part of the software which accepts the configuration commands and writes the verified configuration to the disk. This is usually done by the operator, i.e., user at the customer.\\
+
+
+The following sections of this chapter will introduce the concepts of the ECIM specification on a small example and refer to the overall functionality, which is taken from an internal document, namely the ECIM meta-model specification. 
+
+\section{Example Model}\label{sec:example-model}
+
+Figure~\ref{fig:ecimEx} contains a minimal example of an ECIM. It consists of nodes and solid edges, which together form a tree. The nodes are called \emph{classes} and contain \emph{attributes}, whereas the solid edges are called \emph{parent-child relations}. We will introduce these concepts in the sequel.\\
+
+
+
+\begin{figure}[htb]
+\centering
+\begin{tikzpicture}[
+	level 1/.style={sibling distance=4cm, level distance=1.5cm},
+	level 2/.style={sibling distance=7cm, level distance=1.5cm},
+	level 3/.style={level distance=1.5cm}]
+
+\node [class,dashed] (managedElement) {ManagedElement=1}
+	child { node [class,dashed] (transport) {Transport=1}
+		child { node [attrClass] (vlanport) {
+			\nodepart{one} VlanPort
+			\nodepart[text width=5cm]{two} 
+			\begin{tabular}{lll}
+			vlanPortId & string & key\\
+			vlanId & uint16[1..4096] & mandatory\\
+			isTagged & boolean & \\
+			reservedBy & sequence & readOnly \\
+			& ~moRef & \\
+			\end{tabular}
+			}
+		edge from parent node [above]
+				{\scriptsize $[0..\mu]$}}
+		child { node [attrClass] (router) {
+			\nodepart{one} Router
+			\nodepart[text width=5cm]{two}
+			\begin{tabular}{lll}
+			routerId & string & key \\
+			ttl & int32[1..255] & \\
+			userLabel & string & isNillable \\
+			& & length=1..128
+			\end{tabular} }
+			child { node [attrClass] (interface) {
+				\nodepart{one} InterfaceIPv4
+				\nodepart[text width=5.3cm]{two}
+				\begin{tabular}{lll}
+				interfaceIPv4Id & string & key\\
+				mtu & int32 & isNillable\\
+				& ~[576..9000] & \\
+				operationalState & enum & readOnly\\
+				& ~DISABLED=0& \\
+				& ~ENABLED=1& \\
+				arpTimeout & uint32 & \\
+				loopback & boolean & isNillable\\
+				bfdStaticRoutes & enum & \\
+				& ~DISABLED=0 & \\
+				& ~ENABLED=1 & \\
+				trustDSCP & boolean & \\
+				encapsulation & moRef & isNillable\\
+				& $\to$ VlanPort & \\
+				\end{tabular}
+				}
+			edge from parent node [right]
+					{\scriptsize $[0..4096]$}}
+		edge from parent node [above]
+				{\scriptsize $[1..1]$}}
+	};
+
+\draw[dashed,-latex] (interface) -- (vlanport) node [near start] {\scriptsize encapsulation};	
+\end{tikzpicture}
+\caption[Example of a ECIM model]{Example of a ECIM model.}
+\label{fig:ecimEx}
+\end{figure}
+
+Classes, parent-child relations and the used data-types for the attributes are usually embedded into a \emph{managed information model (MIM)}, which technically acts as a name-space and is used to differentiate between fragments of the overall model. It further allows to have one class-name in several contexts. In this example we assume that all concepts belong to the same MIM for simplicity. 
+The models are provided in \emph{extensible markup language (XML)}, where one XML-file usually contains one MIM.\\
+
+\section{Concepts}\label{sec:concepts}
+
+We will now explain the most important concepts by referring to the example in Figure~\ref{fig:ecimEx}.
+
+
+\subsection{Classes}\label{subsec:classes}
+
+The main concept of an ECIM model is a \emph{managed object class (MOC)} or simply \emph{class}. Each class is represented by a node in Figure~\ref{fig:ecimEx}. The term ``class'' was intentionally chosen, because it is an interface-level description of the resulting configuration object, i.e., similar to object oriented programming, a resulting configuration from this model contains instances of the defined classes. An instance is called \emph{Managed Object (MO)} in the meta-model specification. We will use the terms MO and instance interchangeably.\\
+
+The classes \textsf{ManagedElement} and \textsf{Transport} have a dashed border in the example model. This means that the classes are \verb|systemCreated|. In other words, the system takes care of the creation of the instances and excludes the user from inserting, modifying or deleting such instances. \\
+
+Classes are connected by solid edges, called parent-child relations. Besides defining the structure of the resulting relations, they also specify \emph{containment relations}. For example the classes \textsf{Router} and \textsf{InterfaceIPv4} in Figure~\ref{fig:ecimEx} are connected by a parent-child relation, which means that a instance of \textsc{Router} contains a ``specific amount'' of \textsf{InterfaceIPv4}-instances.
+
+
+\subsection{Cardinalities}\label{subsec:card}
+
+The expression ``specific amount'' leads to the concept of \emph{cardinalities}. Cardinalities are similar concepts to the ones in UML class diagrams or ER diagrams and are used to define the \emph{dimensions} of the resulting configurations. They are defined as intervals on the parent-child relations of the example model. They define the minimal and maximal number of child-instances a parent-instance can possibly have. \\
+In a resulting configuration of the example in Figure~\ref{fig:ecimEx}, an instance of \textsf{Router} can contain between 0 and 4096 instances of \textsf{InterfaceIPv4}. This works analogously for all the other constraints.\\
+
+There are situations where cardinalities are un-specified as between \textsf{Transport} and \textsf{VlanPort} in the example. The cardinality $[0..\mu]$ indicates, that each instance of \textsf{Transport} can have between 0 and $\mu$ instances of \textsf{VlanPort}. Note that $\mu$ is a placeholder for a chosen value. To get such a value for $\mu$, we either have to consider the constraints or the user has to provide them as a separate information.
+
+\subsection{Attributes}\label{subsec:attr}
+
+Attributes can be defined at a class and consist of a \emph{name}, a \emph{data-type} and a set of optional \emph{properties}. In the example model in Figure~\ref{fig:ecimEx}, attributes are defined in the lower part of the nodes. The first column contains the name, the second one the data-type and the third one the possible properties. The name should be self explanatory. Data-types are comparable to the ones used in object-oriented programming. They will be explained in a moment. Optional properties further define characteristics regarding the value of an attribute. Examples of properties are:
+\begin{itemize}
+ \item \verb|readOnly|: this property makes the value of such an attribute not editable by the user but is set by the system instead. The user has no possibility to insert, change or delete a value of such an attribute. In the example of Figure~\ref{fig:ecimEx}, attribute \verb|operationalState| on the \textsf{InterfaceIPv4}-class is \verb|readOnly|.
+ 
+ \item \verb|isNillable|: this property makes it possible for the value to be \verb|null|, a distinct value regardless of the used data-type. Attribute \verb|userLabel| on \textsf{Router} as well as \verb|encapsulation| and \verb|mtu| on \textsf{InterfaceIPv4} in the example are attributes, whose value can be set to \verb|null|.
+ 
+ \item \verb|mandatory|: this property is the opposite of \verb|isNillable| and makes it impossible to set a value of an attribute to \verb|null|. The attribute \verb|vlanId| on \textsf{VlanPort} in the example can not be set to \verb|null|.
+ 
+ \item \verb|key|: this property has to exist on exactly \emph{one} attribute in each class, the \emph{key-attribute}. Each class in the example has one \verb|key| attribute.
+\end{itemize}
+
+The data-types define the value of the attribute and are well-known from several programming languages. Some of them can be further specified with properties, which further refine the data-type:
+
+\begin{itemize}
+ \item \verb|boolean|: The data-type used in propositional logic containing \verb|true| or \verb|false|.
+ 
+ \item \verb|int|: As in other programming languages, it is an unconstrained integer. It cannot be greater than 64 bits, but it is possible to constraint it further by the use of the \verb|range|-property containing \verb|min| and \verb|max| options. Since some of the smaller \verb|int|-types are used more frequently, the current implementation provides the following sub-types: \verb|uint8|, \verb|uint16|, \verb|uint32|, \verb|uint64|, \verb|int16|, \verb|int32| and \verb|int64|.
+ 
+ \item \verb|string|: A character sequence with a possible \verb|length| property to constrain it in its length and the \verb|validValues| property to constrain it with a regular expression. Regular expressions are defined by the \emph{POSIX extended regular expression (ERE)} standard. This validation feature allows the representation of IP and MAC addresses, dates, QoS sequences and many more.
+ 
+ \item \verb|moRef|: A string-attribute, referring to another class. It acts similar to a pointer in C++. This data-type has a special meaning for \emph{bi-directional associations} as we will describe in Section~\ref{subsec:bidir}.
+\end{itemize}
+
+These base-types can be seen as the building-blocks for an attribute. However, there are situations where the need for a richer type arises. In these cases, we have a reference in the attribute to one of the following data-types:
+
+\begin{itemize}
+ \item \verb|enum|: an enumeration-type, i.e., consists of a finite number of \emph{members}. Each member contains a \emph{name} and an integer \emph{value}.
+ 
+ \item \verb|struct|: can be seen as an inner class. Similar to a \verb|struct| in the C programming language it contains a list of struct-members, each one of the type \verb|enum|, \verb|string|, \verb|boolean|, \verb|int| or \verb|moRef|. If the \verb|isExclusive| property is given, this data-type implements the semantics of a \verb|union| in the C programming language, i.e., only one of its member can be set at instantiation time.
+\end{itemize}
+
+
+
+%TODO refer to the example
+
+\subsection{Instance uniqueness}\label{subsec:unique}
+
+A key attribute is used to uniquely identify an instance in a set of instances of the same class. The current implementation uses \verb|string| for all key-attributes in each class. The name of such attribute can be arbitrarily chosen.\\
+
+Even though the key attribute is needed to identify an instance, the \emph{fully specified path name} starting from \textsf{ManagedElement} is uniquely determining an instance in an overall configuration (see Section~\ref{sec:configuration} for an example).
+
+
+\subsection{Bi-directional Associations}\label{subsec:bidir}
+
+There is also the possibility for instances to refer to other instances possibly located in a different branch of the tree. This is achieved with \emph{bi-directional associations} involving two attributes. Both attributes need to have the \verb|moRef| data-type. \\
+
+The two end-points (i.e., instances) of such an association are called \emph{server} and \emph{client}, whereas both instances contain references of each other. However, the reference in the client is \verb|readOnly|, so the client is only passively containing the referring instances, whereas the server contains a modifiable attribute of type \verb|moRef|. The value of such an attribute is the fully specified path of the client. This implies that the client has to be inserted before the server.\\
+
+The bi-directional association in the example in Figure~\ref{fig:ecimEx} between \textsf{InterfaceIPv4} and \textsf{VlanPort} consists of the attribute \verb|encapsulation| on the \textsf{InterfaceIPv4}, which is the server and points to the \verb|reservedBy| attribute of \textsf{VlanPort}.
+
+
+\section{Configurations}\label{sec:configuration}
+
+A configuration of a ECIM model is the same concept as an instance of a class. Starting from the example model in Figure~\ref{fig:ecimEx}, one can derive a large number of configurations depending on the business needs and the specific usage of the software. The configuration in Figure~\ref{fig:ecimConf1} shows a minimal example of a configuration. The value of the key-attribute is explicitly concatenated to the name, e.g., \textsf{Router=1}.
+
+\begin{figure}[htb]
+\centering
+\begin{tikzpicture}[level distance=1cm]
+
+\node [class,dashed] (managedElement) {ManagedElement=1}
+	child { node [class,dashed] (transport) {ManagedElement=1,Transport=1}
+		child { node [attrClass] (router) {\nodepart{one}ManagedElement=1,Transport=1,Router=1
+		\nodepart{two} ttl=50\\userLabel=null
+		}}
+	};
+\end{tikzpicture}
+\caption[Minimal Configuration example]{Minimal Configuration of the model in Figure~\ref{fig:ecimEx}.}
+\label{fig:ecimConf1}
+\end{figure}
+
+This example contains only of one user-inserted instance, namely \textsf{Router=1} (or fully specified \textsf{ManagedElement=1, Transport=1, Router=1}). The other two instances are \verb|systemCreated|. The inserted instance, further contains the only attribute \verb|ttl=50|. In order to write this configuration to memory, the operator has to type specific commands into the configuration manager in a top-down approach, i.e., first insert \textsf{ManagedElement=1}, then \textsf{Transport=1} and then \textsf{Router=1}. The configuration manager always navigates into the previously created instance. Further, the \verb|ttl| attribute on the last instance will be assigned while being inside the \textsf{Router=1} instance.\\
+
+The next example in Figure~\ref{fig:ecimConf2} shows another possibility how to configure the system using the model in Figure~\ref{fig:ecimEx}. Note that this time we omitted the fully specified path in each node, since it is easily derivable from the structure. \\
+
+Here we can see, how a bi-directional relation on a configuration works. The \textsf{InterfaceIPv4=1} node contains the path to the client instance, whereas the client keeps a \verb|readOnly| list of all the servers, i.e., the fully specified path (as a string) of each referring server. The client's \verb|reservedBy| attribute is only there to show where the \emph{bi}-direcional adjective comes from. It will not be inserted by the user. \\
+
+\begin{figure}[hbt]
+\centering
+\begin{tikzpicture}[
+	level 1/.style={sibling distance=2cm, level distance=1cm},
+	level 2/.style={sibling distance=4cm, level distance=1cm},
+	level 3/.style={sibling distance=4cm, level distance=2.5cm}]
+
+	
+\node [class,dashed] (managedElement) {ManagedElement=1}
+	child { node [class,dashed] (transport) {Transport=1}
+		child { node [attrClass] (vlanport1) {
+			\nodepart{one} VlanPort=1
+			\nodepart{two} vlanId=``42''\\
+				isTagged=false}}
+		child { node [attrClass] (vlanport2) {
+			\nodepart{one} VlanPort=2
+			\nodepart[text width=3.5cm]{two} vlanId=``bar''\\
+				isTagged=true\\
+				(reservedBy=[``ManagedElement=1,\\
+				\hspace{1em}Transport=1,\\
+				\hspace{1em}Router=1,\\
+				\hspace{1em}InterfaceIPv4=1''])}}
+		child { node [attrClass] (router) {
+			\nodepart{one} Router=1
+			\nodepart{two} ttl=50\\userLabel=``foo''}
+			child { node [attrClass] (interface1) {
+				\nodepart{one} InterfaceIPv4=1
+				\nodepart[text width=3.5cm]{two} mtu=600\\
+					trustDSCP=true\\
+					pcpArp=5\\
+					encapsulation=``ManagedElement=1,\\
+					\hspace{1em}Transport=1,\\
+					\hspace{1em}VlanPort=2''
+				}}
+			child { node [attrClass] (interface2) {
+				\nodepart{one} InterfaceIPv4=2
+				\nodepart{two} mtu=600\\
+					trustDSCP=false\\
+					pcpArp=2\\
+					encapsulation=null}}
+		}
+	};
+
+\draw[dashed,-latex] (interface1) -- (vlanport2) node [near start] {\scriptsize encapsulation};	
+
+\end{tikzpicture}
+\caption[Configuration Example]{Configuration of the model in Figure~\ref{fig:ecimEx}.}
+\label{fig:ecimConf2}
+\end{figure}
+
+
+Another similar configuration in Figure~\ref{fig:ecimMultBd} shows how it works with multiple servers pointing to the same client.
+\begin{figure}[htb]
+\centering
+\begin{tikzpicture}[
+	level 1/.style={sibling distance=2cm, level distance=1cm},
+	level 2/.style={sibling distance=4cm, level distance=1cm},
+	level 3/.style={sibling distance=4cm, level distance=3.5cm}]
+
+	
+\node [class,dashed] (managedElement) {ManagedElement=1}
+	child { node [class,dashed] (transport) {Transport=1}
+%		child { node [attrClass] (vlanport1) {
+%			\nodepart{one} VlanPort=1
+%			\nodepart{two} vlanId=``42''\\
+%				isTagged=false}}
+		child { node [attrClass] (vlanport2) {
+			\nodepart{one} VlanPort=2
+			\nodepart[text width=3.5cm]{two} vlanId=``bar''\\
+				isTagged=true\\
+				(reservedBy=[``ManagedElement=1,\\
+				\hspace{1em}Transport=1,\\
+				\hspace{1em}Router=1,\\
+				\hspace{1em}InterfaceIPv4=1'', \\
+				\hspace{1em}``ManagedElement=1,\\
+								\hspace{1em}Transport=1,\\
+								\hspace{1em}Router=1,\\
+								\hspace{1em}InterfaceIPv4=2''])}}
+		child { node [attrClass] (router) {
+			\nodepart{one} Router=1
+			\nodepart{two} ttl=50\\userLabel=``foo''}
+			child { node [attrClass] (interface1) {
+				\nodepart{one} InterfaceIPv4=1
+				\nodepart[text width=3.5cm]{two} mtu=600\\
+					trustDSCP=true\\
+					pcpArp=5\\
+					encapsulation=``ManagedElement=1,\\
+					\hspace{1em}Transport=1,\\
+					\hspace{1em}VlanPort=2''
+				}}
+			child { node [attrClass] (interface2) {
+				\nodepart{one} InterfaceIPv4=2
+				\nodepart[text width=3.5cm]{two} mtu=600\\
+					trustDSCP=false\\
+					pcpArp=2\\
+					encapsulation=``ManagedElement=1,\\
+					\hspace{1em}Transport=1,\\
+					\hspace{1em}VlanPort=2''}}
+		}
+	};
+
+\draw[dashed,-latex] (interface1) -- (vlanport2) node [near start] {\scriptsize encapsulation};	
+\draw[dashed,-latex] (interface2) -- (vlanport2) node [near start] {\scriptsize encapsulation};
+\end{tikzpicture}
+\caption[Configuration: Multiple Bi-Directional Associations.]{Configuration of the model in Figure~\ref{fig:ecimEx} with multiple bi-directional associations.}
+\label{fig:ecimMultBd}
+\end{figure}
+
+In more complex configurations like the one in Figure~\ref{fig:ecimConfUnique}, it is more obvious why to have the fully specified path as a unique identifier for each instance. The example is \emph{not} a configuration according to the example model, but to show how uniqueness in the model is guaranteed. The example model would need to change and to contain  \textsf{Transport} not as \verb|isSystemCreated| and have a cardinality of $[2..2]$.\\
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+	level 1/.style={sibling distance=3.5cm, level distance=1cm},
+	level 2/.style={sibling distance=2.5cm, level distance=1cm},
+	level 3/.style={sibling distance=3cm, level distance=1cm}]
+
+	
+\node [class,dashed] (managedElement) {ManagedElement=1}
+	child { node [class] (transport1) {Transport=1}
+		child { node [class] (router) {
+			Router=1
+			}
+			child { node [class] (interface1) {
+				InterfaceIPv4=1
+				}}
+			child { node [class] (interface2) {
+							InterfaceIPv4=2
+							}}
+		}
+		child { node [class] (vlanport1) {
+					VlanPort=1}}
+		}
+	child { node [class] (transport2) {Transport=2}
+			child { node [class] (vlanport2) {
+				VlanPort=1}}}
+		
+	;
+
+\draw[dashed,-latex] (interface1.east)   -- (vlanport1.west);
+\draw[dashed,-latex] (interface2.east)  -- (vlanport2.south); % node [right, near start] {\scriptsize encapsulation} ;
+
+\end{tikzpicture}
+\caption[Uniqueness-example of instances.]{Configuration to demonstrate uniqueness of instances.}
+\label{fig:ecimConfUnique}
+\end{figure}
+
+If we would only rely on the key-attribute, we would have an ambiguity problem. The configuration is not respecting the model in Figure~\ref{fig:ecimEx}, but is used to demonstrate the configuration possibilities.
+
+
+
+
+
+
+\section{Scientific Context}\label{sec:models-scientific}
+
+As we have seen in Chapter~\ref{chap:introduction}, highly configurable software is desired, but difficult to model and derive test-cases. Ericsson AB developed ECIM models to model the configuration possibilities. \\
+Besides that, also other commercial as well as open source solutions needed this modeling approach. Thus, researchers focused on \emph{Feature Models}, a compact representation of all products in a \emph{software product line (SPL)}. A \emph{configuration} is a set of selected \emph{features} of such a feature model, which respects the structure of the feature model.
+The original definition of feature models was given by Kang et. al.~\cite{feature-ori-pl-engineering}, where the overall \emph{method} of feature identification was presented. However, in the ECIM domain the features or classes are already identified and modeled. The formal definition of a feature model is the following~\cite{feature-ori-pl-engineering, staged-configuration}:
+
+\begin{definition}
+A \textbf{feature} is a prominent or distinctive user-visible aspect, quality, or characteristic of a software system or system. A \textbf{feature model} is a \textbf{feature diagram} with additional information such as descriptions, binding times, priorities and others. A \textbf{feature diagram} is a structural organization of a set of features. It is usually represented as a tree with the root representing a concept (e.g. software system) and its descendant nodes are features. A \textbf{configuration} defines one possible product of a feature diagram. A configuration of a feature diagram is comparable to an object of a class in object-oriented programming. A \textbf{staged configuration} is the process successively specializing a feature diagram followed by the derivation of a configuration from the most specialized feature diagram in the sequence.
+\end{definition}
+
+Extensions of the original definition of feature models include cardinalities as well as attributes ~\cite{auto-reason-fm,feature-model-survey, card-based-feature-models-formalization}. These extensions are essential to model ECIM in terms of feature models. Figure~\ref{fig:feature-model} shows an example of a feature model from the context of a mobile phone product line. Other examples covering both software systems as well as industrial product lines are present in current research and literature. 
+
+\begin{figure}
+\begin{tikzpicture}[level distance=2cm,
+	level 1/.style={sibling distance=3.7cm},
+	level 2/.style={sibling distance=2cm, 
+		level distance=2cm},
+	]
+
+\node[class] (phone) {MobilePhone} [anchor=south]
+	child { node [class, mandatory] (calls) {Calls}
+	edge from parent node [left, above]
+	{\scriptsize $[1..1]$}}
+	child { node [class, mandatory] (msg) {Messaging}
+	edge from parent node [right, below] {\scriptsize $[1..1]$}}
+	child { node [class, mandatory] (os) {OS} 
+		child[normal] { node [class] (android) {Android}}
+		child[normal] { node [class] (windows) {Windows}
+		edge from parent node [right] {\scriptsize $\langle 1 - 1 \rangle$}}
+	edge from parent node [right, below]
+	{\scriptsize $[1..1]$}}
+	child { node [class, mandatory] (media) {Media}
+		child[normal] { node [class] (camera) {Camera}}
+		child[normal] { node [class] (mp3) {MP3}
+		edge from parent node [right] {\scriptsize $\langle 0 - 2 \rangle$}}
+	edge from parent node [left, below]
+	{\scriptsize $[0..1]$}}
+	
+	;
+
+
+
+\node[attribute, right=3cm of phone,text width=2cm,align=left] (phoneAttr) {name: version \\
+domain: string\\
+value: ``1.0 alpha''};
+\draw[attrOf] (phoneAttr.west) -- (phone.east);
+
+\node[attribute, below=1cm of msg,text width=2cm,align=left] (msgAttr) {name: maxLength \\
+domain: int\\
+value: ``128''};
+\draw[attrOf] (msgAttr.north) -- (msg.south);
+
+\node[attribute, below=1cm of calls,text width=3cm,align=left] (callsAttr) {name: quality \\
+domain: \{LOW,MEDIUM,HIGH\}\\
+value: ``HIGH''};
+\draw[attrOf] (callsAttr.north) -- (calls.south);
+
+\node[attribute, below=1cm of android, text width=2cm, align=left] (androidAttr) {name: codename\\ domain: string \\ value: ``Lollipop''};
+\draw[attrOf] (androidAttr.north) -- (android.south);
+
+\node[attribute, below=1cm of camera, text width=2cm, align=left] (cameraAttr) {name: resolution\\ domain: string \\ value: ``12MPixel''};
+\draw[attrOf] (cameraAttr.north) -- (camera.south);
+\end{tikzpicture}
+\caption[Example of a feature model]{Example of the \emph{mobile phone} feature model.}
+\label{fig:feature-model}
+\end{figure}
+
+The cardinalities $\langle 1 - 1 \rangle$ and $\langle 0 - 2 \rangle$ in the example are \emph{group cardinalities} which are applied on a group of features. They are not used in the ECIM specification.
+
+
+%TODO maybe write more about analyses or later?
+ 

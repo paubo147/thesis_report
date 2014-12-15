@@ -1,0 +1,103 @@
+\chapter{Constraints}\label{chap:constraints}
+
+
+After we have seen how we can derive configurations from a ECIM model as well as how such a model looks like, we will now focus on the used \emph{constraints}, which are called \emph{dependencies} in the ECIM context. Dependencies are used to express conditions which have to be valid, in order for a configuration to be accepted by the configuration manager. The current implementation of the ECIM meta-model specification expresses these constraints in Schematron.\\
+
+\emph{Schematron}\footnote{\url{http://www.schematron.com/}} is a validation language for XML documents. It defines assertions which have to be satisfied in order to pass the test and for the document to be valid. Schematron is usually embedded into a XML file and uses XPath queries to express the constraints.\\
+
+In the ECIM XML files, Schematron-rules can be defined on a class. The validation of those rules is applied to the resulting configuration. 
+
+\section{Example Dependencies}\label{sec:exampleDep}
+\lstinputlisting[language=XML, 
+	caption={Dependencies on the class \textsf{Router} of the Example in Figure~\ref{fig:ecimEx}.},
+	label={lst:schematronRouter}]{listings/router.xml}
+
+The example script in Listing~\ref{lst:schematronRouter} gives the fully specified Schematron validation on the class \textsf{Router}. The \verb|<assert>|-tag is the most important one, where \verb|test| is the XML-attribute containing the XPath expression; usually one expression for each assertion. \verb|<value-of>| is used to define the starting point of the verification, which is the current instance ``\verb|.|''. The text inside \verb|<assert>| is the error-message. We will omit this text, since it will not be further used by our examples. However, this text is displayed at the configuration manager if the validation fails, i.e., if the \verb|test| attribute returns \verb|false|.\\
+
+\begin{verbatim}
+count(InterfaceIPv4[@loopback]) le 64
+\end{verbatim}
+The \verb|test| attribute of the first assertion is used to verify if the number of \textsf{InterfaceIPv4} instances (in general, \emph{not} under the current \textsf{Router}-instance), which have the \verb|loopback| attribute set, is smaller or equal (\verb|le|) than 64.\\
+
+\begin{verbatim}
+@ttl eq 64
+\end{verbatim}
+The second assertion is trivial and ensures that the \verb|ttl| attribute is always set to 64. \\
+
+\begin{verbatim}
+are-distinct-values(./InterfaceIPv4/@encapsulation)
+\end{verbatim}
+The last assertion is used to validate, if all \verb|encapsulation| attributes of all \textsf{InterfaceIPv4} instances under the current \textsf{Router} instance are distinct, i.e., have different values.\\
+
+\textsf{InterfaceIPv4} contains assertions too, which can be seen in Listing~\ref{lst:schematronInterface}
+
+\lstinputlisting[language=XML, 
+	caption={Dependencies on the class \textsf{InterfaceIPv4} of the Example in Figure~\ref{fig:ecimEx}.},
+	label={lst:schematronInterface}]{listings/interface.xml}
+
+\section{XPath Expression Set}\label{sec:xpath}
+Beside these trivial assertions other, more complex expressions are possible, where XPath is the core of the validation language. The current implementation used in ECIM uses a reduced set of XPath expressions in order to validate the resulting configurations. An XPath expression can be of the form:
+\begin{itemize}
+ \item Literals, i.e., integers and strings.
+  
+  \item Unary and binary \emph{boolean} operators: $\ \neg\ ,\wedge\ ,\ \vee\ ,\ \otimes\ $. The arguments to those operators are again an XPath expression. 
+  
+  \item Binary \emph{comparison} operators: $\ <\ , \ \leq\ , \ >\  ,\ \geq\ , \ =\ , \ \neq\ $. Each operator takes two XPath expressions as arguments.
+  
+  \item Binary \emph{arithmetic} operations: $\ +\ , \ -\ , \ \ast\ , \ \div\ \ ,\ \bmod$. Each operation takes two XPath expressions as arguments.
+  
+  \item \emph{Path expressions} are used to navigate inside the configuration-tree and can be seen as a list. Each element denotes one move and can have one of the following form:
+  \begin{itemize}
+   \item \verb|.| refers to the current instance.
+   \item \verb|..| refers to the parent instance.
+   \item \verb|<name>| refers to a specific class name. This returns \emph{all} instances of this name.
+   \item \verb|@<name>| refers to an attribute name.
+  \end{itemize}
+  For example, let \verb|./../A/B/@c| be defined on a class \verb|X|. Then it informally denotes: For each instance of \verb|X| take the parent instance, select all child instances of type \verb|A| then for all child instances of type \verb|A| select all child instances of type \verb|B|. For all \verb|B| instances, select the value of attribute \verb|c|. 
+  
+  
+  \item \emph{Filter expressions} can be seen as predicates for path expressions, where a condition to select a specific instance is added. Consider the slightly modified example of before: \verb|./../A/B[@c = 1]|. In this case we select only those \verb|B| instances whose \verb|c| attribute equals \verb|1|. 
+  
+  \item \emph{Function calls} allow the use of special functions. Only a small subset is used from the original XPath range of functions. Each function takes at least one argument. \verb|xpath|-arguments are other arbitrary Xpath expressions. Those functions include:
+  \begin{itemize}
+   \item \verb|count(xpath)|: simply returns the number of occurrences for which \verb|xpath| holds.
+   
+   \item \verb|are-distinct-values(xpath)|: asserts if all values inside the evaluated \verb|xpath| have 
+   a distinct value.
+   
+   \item \verb|matches(string, pattern)|: checks if the given \verb|string|-attribute matches a regular expression \verb|pattern|.
+   
+   \item \verb|exists(xpath)|: is mainly used for \verb|moRef|s, i.e., if the client exists the \verb|xpath| is pointing to. If \verb|expr| is not a \verb|moRef| this function checks if \verb|xpath| is not \verb|null|.
+   
+   \item \verb|contains(xpath, string)|: checks if a given \verb|string| is inside an expression \verb|xpath|.
+   
+   \item \verb|string-length(string)|: returns the length of a given \verb|string|. 
+  \end{itemize}
+\end{itemize}
+
+We will come back to the example once we have to generate test-cases automatically. The power of these dependencies allows the developers of ECIM to define a big variety of conditions which have to be fulfilled in order for the configuration to be valid. 
+
+\section{Scientific Context}\label{sec:science}
+
+In order to capture the explained functionality of the used XPath expressions, we will introduce \emph{constraint satisfaction problems (CSP)}. Then we will proceed to \emph{satisfiabiliy modulo theories (SMT)}, a generalized successor of the famous \emph{SAT problem}. \\
+
+\subsection{Constraint Satisfaction Problem (CSP)}\label{subsec:csp}
+
+The purpose of a CSP is, to determine the satisfiability of constraints. The following definition should clarify the purpose further:
+
+\begin{definition}\cite{csp}
+A \textbf{constraint satisfaction problem} (CSP) is defined by a set of \textbf{variables} $X_1, X_2, \ldots, X_n$, and a set of \textbf{constraints} $C_1, C_2, \ldots, C_m$. Each variable $X_i$ has a nonempty \textbf{domain} $D_i$ of possible \textbf{values}. Each \textbf{constraint} $C_i$ involves some subset of the variables and specifies the allowable combinations of values for that subset. A \textbf{state} of the problem is defined by an \textbf{assignment} of values to some or all of the variables $\{X_i = v_i, X_j = v_j, \ldots\}$. An assignment is called \textbf{satisfiable} if it does not violate any constraint. A \textbf{complete} assignment covers every mentioned variable. A \textbf{solution} to a CSP is a complete, satisfiable assignment.
+\end{definition}
+
+A various number of problems can be mapped to a CSP~\cite{csp}, including 8 queens, graph coloring and other famous puzzles as well as real world applications including artificial intelligence or resource allocation in operating systems. Further, variations of this definition include finding of the whole possible set of assignments for a given problem, the number of solutions or a maximal or minimal solution for a given problem. No matter how the original definition is changed, CSPs remain NP-hard~\cite{csp} in general.\\
+
+
+
+The most prominent CSP is the \emph{satisfiability (SAT) problem of propositional logic}. It involves only variables in the domain $\{\mathtt{true}, \mathtt{false}\}$, i.e., propositional variables and determines their satisfiability. \emph{SAT modulo theories (SMT)} goes one step further: it uses \emph{many-sorted first order logic (FOL)} to allow a richer logic for describing problems. Furthermore, it constraints the interpretation of some symbols by the use of \emph{background theories}~\cite{smt-appetizer}. For theoretical details of FOL and various background theories we refer to the literature, where Mendon\c{c}a et al.~\cite{smt-appetizer} give a good overview. Later, we will refer to this paper to select suitable theories for our context.\\
+
+To formulate SMT problems, the SMT-LIB-initiative has been founded in 2003 \footnote{\url{http://smt-lib.org/}}. 
+Its aim is to facilitate research and development in SMT. One of the biggest achievements of this initiative is the development of the SMT-LIB input language~\cite{smt-lib2} which is used by several solvers. In general, the syntax is borrowed from Common LISP and provides a big variety of constructs to support different logics, theories and instructions for the solver. A comprehensive explanation of the SMT-LIB syntax can be found in \cite{smt-lib2}. \\
+
+
+
+

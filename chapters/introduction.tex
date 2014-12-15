@@ -1,0 +1,86 @@
+\chapter{Introduction}\label{chap:introduction}
+
+The increasing amount of software needed on the market led to high demands in terms of both reliability as well as functionality of the end-product.
+Especially sophisticated ways of testing software are a desired method to ensure the quality of service of the resulting software. Challenges arise if software gets highly configurable. Describing the possible configuration of a software is fundamental in early stages of the project, since those descriptions are then used in different areas of software development. In the mobile and fixed networking business, Ericsson AB uses the so-called \emph{Ericsson Common Information Model (ECIM)} to describe various software parts and their interaction. This model does not only illustrate, how the software can be configured by the user, but moreover provides a guideline for the actual development of the software and describes the system as a whole.
+The requirements of testing activities on such systems change, since traditional testing approaches are not enough to test software under different configurations. The reason for that is, that one test-case might pass on one configuration while it fails on another one~\cite{interaction-test-hcs-constr}. Further, the software part which allows the user to enter the configuration, needs to be tested in order to meet the requirements given by the ECIM model as well as to be fail-safe.\\
+
+A further challenge arises if the formerly mentioned ECIM involves \emph{constraints}. Constraints are rules which describe allowed or illegal combinations of software components in one configuration. Syntax and semantics of the constraints depend on the constraint language and also on the demands of the end-products, but always affects the interaction between the running software components. However, those constraints makes it harder to generate configurations, i.e., test-cases in an automated fashion.
+
+\section{Project Context}\label{sec:project-context}
+
+The thesis project was elaborated and developed at Ericsson AB Linköping in the context of a bigger software project, which is currently developed in Linköping, Stockholm and Anyang (South Korea). Approximately 200 developers are involved at the site in Linköping. \\
+
+
+The model is the theoretical foundation of the software and used by all the teams involved in this project. It was developed by a specific modeling group located in Stockholm. The model is extensible to several needs for the current product and will also be the foundation of future projects.
+
+\section{Problem Description}\label{sec:problem-description}
+
+
+The foundations of the problem are configuration descriptions which are following a UML-like syntax. They describe the allowed configurations of a running system, and are also needed for other aspects in the project development.
+The configuration follows a tree structure, where nodes are classes and each class contains attributes. The model itself is based on an interface level for the resulting configuration, whereas the commands to insert the configuration into the system have to respect this description. Parent-child relations define the structure and contain cardinalities between the different nodes to express the dimensions of the resulting configuration. Further, dependencies are involved, which validate the entered configuration.\\
+
+In the previously mentioned project, the configuration, i.e., one instance of such a model, can be inserted by the user. After this process, the software behaves in a certain way.  
+Having a set of configurations implies having test-cases for the \emph{configuration manager}, the software part which accepts the commands to configure the software. 
+
+Recalling the original definition\footnote{\url{http://softwaretestingfundamentals.com/test-case/}} of a test-case, implies the crucial task of a test-case in the software development process:
+
+\begin{quote}
+A test-case is a set of conditions or variables under which a tester will determine whether a system under test satisfies requirements or works correctly.
+
+The process of developing test-cases can also help find problems in the requirements or design of an application.
+\end{quote}
+
+In this thesis, test-cases ensure the quality of service of the configuration manager. So far, this activity has been performed sparsely in a hard coded automatism, which is time-consuming and makes it hard to cover all variations.\\
+
+From a theoretical point of view it is nearly impossible to achieve satisfying results of configurations by hand. Especially the number of variables, the structure how different classes can be instantiated as well as the constraints imply a high degree of variety of configurations. Other related requirements include the semantic meaning, which determine the quality or the value of a test-case and are also fundamental in a test-case generation process.\\
+
+This led to the need of an approach to generate configurations (test-cases) in an automated fashion. The generated test-cases have two purposes:
+\begin{enumerate}
+ \item To test the \emph{configuration manager}, i.e., the software part which receives the instructions to configure the system.
+ \item To have multiple \emph{scenarios} for other software-testing activities.
+\end{enumerate}
+
+Both purposes have somewhat different requirements. While testing the configuration manager also involves marginal values for attributes and especially negative test-cases, for scenarios used by other testing activities only valid, i.e., positive test-cases are interesting.
+
+We can already identify different crucial properties which are necessary in order to derive a satisfying set of test-cases from a ECIM:
+\begin{itemize}
+ \item \textbf{Constraint coherency:} test-cases should always be coherent with respect to the existing constraints of the model.
+ 
+ \item \textbf{Structural coherency:} test-cases should always follow the structure given by the ECIM. By \emph{structure} we mean parent-child relations as well as cardinalities. This property defines both the number of test-cases as well as the quality of each test-case and the quality of the test-suite as a whole, respectively.
+ 
+ \item \textbf{Attribute value coherency:} test-cases should follow a desired distribution of attribute values. In other words, the values of the attributes should also follow certain combinatorial properties.
+ 
+ \item \textbf{User-specified coherency:} test-cases should fulfill the needs of the tester. This requirement is crucial. It defines the quality of both the test-case as well as the created set of test-cases.
+\end{itemize}
+
+Important to note is, that we are rather interested in a small set of coherent test-cases instead of a big number of test-cases with no or low assurance about coherency.
+
+
+\section{Goal and Scope of this Thesis}\label{sec:scope}
+
+As seen before, testing configurations by hand is a cumbersome task. Thus, the primary goal of this thesis is, to use the ECIM models to generate configurations in an automated fashion. \\
+
+To achieve this, the functionality of the mentioned models is explained first on a small example. After a thorough study of the example and the definition of the different features, they will be linked to the existing scientific context. \\
+
+Another important contribution of this work is the study of the used constraints. Therefore, the previously mentioned example will be extended by the constraints and the used \emph{constraint language} will be illustrated. After that, the discussion about the constraints will be linked to the theoretical model, which will be later used in the practical work.\\
+
+The final theoretical considerations are to create test-cases from the previously introduced concepts. Thus, the sample model will be used to explain how the process works. \\
+
+Finally, the practical part of this work is the implementation of the gathered approaches in terms of an executable tool. 
+
+Both the theoretical as well as the practical work should contribute to answer the following three questions:
+
+\begin{enumerate}
+ \item How can we use a ECIM model to derive configurations of a software product in an automated fashion? Does the ECIM model reveal enough information to achieve this task?
+ 
+ \item How can we achieve both the coherency of the configurations as well as appropriate values in terms of usability for software-testing?
+
+ \item Which impact do the mentioned goals have on the performance of the test-case generation process?
+\end{enumerate}
+
+
+\section{Structure of the Document}\label{sec:structure}
+
+
+As mentioned before, the overall report structure is inspired by an example of an ECIM model.
+This example will be explained thoroughly in Chapter~\ref{chap:ecim}. Then, dependencies which are preventing certain configurations will be explained on the same example in Chapter~\ref{chap:constraints}. The process how to generate such configurations from the example model in an automated fashion will be introduced in Chapter~\ref{chap:methodology}, which will be continued on the actual implementation of the system in Chapter~\ref{chap:practice}. After a short evaluation of the work in Chapter~\ref{chap:evaluation} as well as a following discussion in Chapter~\ref{chap:discussion}, the work will be concluded in Chapter~\ref{chap:conclusion}.

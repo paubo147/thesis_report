@@ -1,0 +1,144 @@
+
+\chapter{Evaluation}\label{chap:evaluation}
+
+After we have seen the implementation of the tool, we will describe how the results were evaluated. This will be done on a practical evaluation in Section~\ref{sec:practical-eval}. In the integration evaluation we will shortly describe how the tool can be integrated in practice in terms of the build chain. First of all, we will terminate the theoretical evaluation of Section~\ref{subsec:theor-eval}.
+
+
+\section{Final Comments on the Theoretical Evaluation}
+
+As already stated in Section~\ref{subsec:theor-eval}, we will now complete the work by examining the complexity of the different SMT facets on the used SMT solver z3. \\
+
+There are no current information available on the reasoning system behind z3 in terms of \emph{uninterpreted functions}. However, it can be assumed that the authors decided to implement a congruence closure algorithms, due to several publications and slides on the web. They further 
+mention an improvement of the original algorithm~\cite{z3-solver}, called Ackermann-reduction, which makes congruence closure polynomially solvable.\\
+
+According to de Moura et. al.~\cite{tractability}, the way z3 handles algebraic data types is a reduction to uninterpreted function symbols.\\
+
+The \emph{linear arithmetic} decision procedure used in z3 is largely based on the one used in Yices\footnote{\url{http://yices.csl.sri.com/}}, another SMT solver. More precisely, the procedure is based on a simplex algorithm~\cite{lin-arith}, which is based on a tableau-based solution. Simplex has exponential worst-case complexity. 
+
+
+%TODO Metrics section with explained AECR and maximal number of products (general aspects)
+\section{Metrics}\label{sec:metrics}
+
+To understand the differences between the selected models for the evaluation in the next section, we need to introduce metrics in order to compare the properties of a selected model to another one. 
+
+
+\subsection*{AECR}
+Mendon\c{c}a et. al.~\cite[p.~2]{ecr} introduce the \emph{Extra Constraint Representativeness (ECR)} on a feature to be the ratio between the number of classes involved in a constraint and the overall number of classes. Since we are dealing with more complex constraints involving attributes, we will use a slightly modified ratio, namely \emph{Attributed Extra Constraint Representativeness (AECR)}, as follows:
+ \[
+  AECR_{\mathcal{FM}} = \frac{\sum\limits_{\mathcal{C} \in \mathcal{FM}} d_{\mathcal{C}}} {\sum\limits_{\mathcal{C} \in \mathcal{FM}} a_{\mathcal{C}}}
+ \]
+where $d_{\mathcal{C}}$ is the number of attributes in a class $\mathcal{C}$ dependent on at least one constraint and $a_{\mathcal{C}}$ is the number of attributes of a class $\mathcal{C}$. Another name for this metric would be  \emph{constraint density}. We have now a metric to determine how much a feature model is covered by dependencies.\\
+
+Computing AECR on the example model seen in Figures~\ref{fig:ecimEx} and \ref{fig:ecimEx2} would yield $9 / 15 = 0.6$, which means that 60 \% of the model is covered by dependencies.
+
+
+
+
+%\subsection{Maximal Number of Configurations}\label{subsec:max-conf}
+%This number is an important metric to determine the complexity and flexibility of the feature model. Determining this metric involves a dynamic-programming approach. The formula to compute the number of configurations is 
+%\begin{align*}
+%  conf(\mathcal{FM}) &= \prod_{p \in \mathcal{P}}  \max conf(p)\\
+%  conf(p) &= \{ \pi_{i}^{p}, \forall i \in classes(p) \}\\
+%  \pi_{i}^{p} &= \pi_{i-1}^{p} + (\max{I(c_{i}^{p})}-\min{I(c_i^p)}) *  \prod_{0 \leq k < i} \max{I(c_{k}^{p})}\\
+%  \pi_{0}^{p} &= \max{I(c_{0}^{p})} 
+%\end{align*}
+%with the following actors:
+%\begin{itemize}
+% \item $\mathcal{FM}$ is the feature model.
+% \item $\mathcal{P}$ is the set of distinct paths from the root node in $\mathcal{FM}$.
+% \item $p$ is a class from $\mathcal{P}$.
+% \item $classes(p)$ is the ordered set of classes within a path $p$.
+% \item $c_i^p$ is the $i$th class of path $p$ starting with 0.
+% \item $I(c_i^p)$ is the cardinality of class $c_i^p$.
+% \item $\pi_i^{p}$ maximum number of configurations containing the first $i$ classes on path $p$. Its computation is the number of configurations with $i-1$ classes plus the maximum interval times the configuration of all upper bounds of intervals lower than $i$.
+% \item $conf(p)$ is the set of maximum configurations of each length $i$ of a path $p$.
+% \item $conf(\mathcal{FM})$ is the product of the maximal configurations of the maximal length of all paths in $\mathcal{FM}$.
+%\end{itemize}
+%
+%The example model in Figures~\ref{fig:ecimEx} and \ref{fig:ecimEx2} has a maximal number of configuration of $conf(\mathcal{FM}) = 4097*\mu + 4097$. If we replace the unspecified upper-bound with $\mu=10$, we get 45067. 
+%
+%%me, tr, vlan
+%%pi_0=1 (me)
+%%pi_1=1 + (1-1) * 1=1 (tr)
+%%pi_2=1 + (x)*1=x+1 (vlan)
+%%
+%%me, tr, r, i
+%%pi_0=1
+%%pi_1=1 + 0*1=1
+%%pi_2=1 + 0*...=1
+%%pi_3=1 + 2*(1*1*1)=3
+%%pi_4=3 + 1*(1*1*1*2)=5
+%
+%conf(FM)==4097*\mu + 4097
+
+
+\section{Practical Evaluation}\label{sec:practical-eval}
+
+For the practical evaluation, we looked at two different models. To gather information about the model, the test-cases and running times, we appended a \texttt{StatisticsHandler} to the end of our chain. Some of the produced configuration sequences were then executed on the final system.
+We will have a look at the models and the results in the next section.
+
+\subsection{Model description}
+
+As we can see in Table~\ref{tab:specs}, we named the two models $\mathbf{M1}$ and $\mathbf{M2}$. The two models are similar in the number of classes and attributes. However, since the cardinalities are bigger at $\mathbf{M2}$, we can also deduce a bigger number of configurations from $\mathbf{M2}$. The AECR are similar for both cases.\\
+
+We decided to take these two models to demonstrate, how the tool and the SMT solver can handle large cardinalities, i.e., instances per test-case in terms of execution-time. The skip-factor was chosen individually for each test-case. We can already see that selecting \verb|ALL| for $\mathbf{M2}$ would give us an infeasible amount of test-cases which is impossible to generate as well as to test. We will respect these facts in the next subsection.
+
+\renewcommand{\arraystretch}{1.3}
+\begin{table}
+\centering
+% spec & number & ()notes)
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Metric} & \textbf{M1} & \textbf{M2}\\ \hline
+\# classes & 7 & 11\\ \hline
+\# attributes & 42 & 28\\ \hline
+max. tree depth & 5 & 6\\ \hline
+dependencies & 7 & 11\\ \hline
+max. cardinality & 10 & 4096\\ \hline
+AECR & 0.5222 & 0.6667\\ \hline
+\end{tabular}
+\caption{Specification of the test-models \emph{M1} and \emph{M2}.}\label{tab:specs}
+\end{table}
+%\renewcommand{\arraystretch}{1}
+
+\subsection{Practical Evaluation Results}
+
+The practical evaluation was performed on the test-models from the previous section. The summary of the results can be seen in Table~\ref{tab:results}. For a comprehensive list, i.e., the results for each test-case per test run, we refer to Appendix~\ref{app:results}. Due to the large amount of test-cases of $\mathbf{T3_{M2}}$, the comprehensive results were omitted in this case.
+The test-cases vary in the skip-factor and thus, in the resulting test-cases. The maximal number of instances depends on the skip-factor and the cardinalities. This is the reason for the high number in test-case $\mathbf{T1_{M1}}$. Surprisingly, all test-cases verified by the SMT solver resulted in satisfying ones. The time-out for $\mathbf{T1_{M1}}$ was set to 20 minutes and can be found somewhere between 658 and 2,872 instances. A reason for this timeout we will discuss in the discussion chapter.
+
+
+\begin{table}
+\centering
+\begin{tabular}{|p{4cm}|r|r|r|}
+\hline
+\textbf{Metric}  & $\mathbf{T1_{M1}}$ & $\mathbf{T2_{M2}}$ & $\mathbf{T3_{M2}}$\\ \hline
+
+\# of test-cases & 15 & 135 & 769\\ \hline
+
+skip-factor & 0.7 & 0.7 & ALL\\ \hline
+
+max. instances & 4,119 & 519 & 260\\ \hline
+
+\# SAT & 7 & 135 & 260\\ \hline
+
+\# UNSAT & 0 & 0 & 0\\ \hline
+
+\# TIMEOUT & 8 & 0 & 0\\ \hline
+
+timeout & 20 min & 20 min & 20 min\\ \hline
+
+\end{tabular}
+\caption[Summary of the evaluation.]{Summary of Evaluation.} \label{tab:results}
+\end{table}
+
+\section{Integration Evaluation}
+
+From a software-engineering point of view, the tool has to be used, whenever the MIM model changes. 
+This will happen at the project initialization phase, after the requirement analysis has been performed and the system architecture has been decided. 
+Further, it could be the case that the model changes during the development. In this case, after the change of the model-files the tool could sit right at the version control system and create test-cases, if the model files are committed to a specific repository. 
+The drawback of this integration is, that one might have only a part of the model and not the overall tree.
+The previously described models (from Section~\ref{sec:practical-eval}) are all parts of the model. Further, we could run into performance issues when executing the tool on the comprehensive model.
+
+%\section{Technique Integration}
+%
+%As we have mentioned earlier, several Python modules need to be installed in order to use the tool successfully. 

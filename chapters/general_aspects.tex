@@ -1,0 +1,647 @@
+There are several ways to approach the overall topic. We decided to lead the discussion from the need of highly configurable software in industry to software product lines in Section~\ref{sec:configurable}. After that, Section~\ref{sec:models} introduces feature models, which is an important technique to describe variability and commonality in software. Since constraints are a central aspect of this thesis, they are introduced in Section~\ref{sec:constraints} by explaining CSP, SAT and SMT. Then, the specific modeling technique for our scenario, namely the ECIM model, is explained. In this context we are talking about variability modeling within Ericsson AB (Section~\ref{sec:ericsson}). The last Section~\ref{sec:test-conf} investigates the previously gathered ideas and talks mostly about using analytic methods based on feature models to investigate a test-case generation approach.
+
+\section{From Configurable Software to Software Product Lines and Feature Models}\label{sec:configurable}
+
+Most modern software systems allow the user to configure the behavior at least to a certain degree. The idea behind \emph{configurable software} applies both to open-source software, but also commercial applications. The open-source world developed a big variety of different solutions, ranging from operating systems to text editors and web-servers, most of them highly configurable systems. 
+On the other hand, software companies have the objective to develop software for a broad range of different customers and  generalize the core to make parts of the software re-usable. In other words, they strive to offer configurable systems such that the user can configure, select and customize components by keeping the core of such a software re-usable for the producer. 
+
+The flexibility of such a system can be defined with two terms: \emph{variability} and \emph{commonality}, which are orthogonal definitions:
+
+\begin{definition}
+\textbf{Variability}~\cite{variability} is the ability of a system, an asset, or a development environment to support the 
+production of a set of artifacts that differ from each other in a preplanned fashion.
+\end{definition}
+
+
+These are the major concepts when talking about modeling large configurable software. The identification of both variable and common components allows the software to be extensible, portable and to achieve a good quality in terms of robustness and maintainability ~\cite{cost-based-prioritization,iso-9126}. However, the domain analysis and the flexible architecture requirements of such a software system makes it difficult to engineer a possibly highly configurable software. 
+
+This led to the attempt to lean towards other fields, where so-called \emph{product lines} were already state of the art~\cite{feature-model-survey}. The idea behind product lines is, to produce an end-product that fulfills budget and the quality in a prescribed way. Examples for companies with the successful use of products line were and are Boeing, Dell, Nokia or even Mc Donalds. These requirements are exactly the same as in the software engineering domain. Thus, the research focused on \emph{Software Product Lines (SPLs)}, whose goal is to design a software product in a similar fashion as it was done with air-planes, portable computers, mobile phones or hamburgers. SPL engineering is an emerging paradigm that leads development from re-usable core assets~\cite{feature-ori-pl-engineering}. Developing such assets involves sophisticated software engineering skills to exploit commonality and variability in a desirable proportion. The most common way to achieve this, is to use \emph{Feature-Oriented Domain Analysis (FODA)}, which was introduced in 1990 by Kang. The goal is, to express the product functionality in a way that software developers as well as stakeholders are able to refer to re-usable assets in the same way~\cite{feature-ori-pl-engineering}. This is done by calling the assets \emph{features}, instead of classes or instances. 
+Features are usually identified during a FODA process and then organized into an initial \emph{feature model} which is then refined by domain-specific technology.
+
+We will now talk about feature models in a broader sense.
+
+
+\section{Feature Models}\label{sec:models}
+
+As we have introduced before, \emph{feature models} are used to represent variable as well as common parts of a software product line. The following definitions~\cite{staged-configuration} are useful when talking about feature models:
+
+\begin{definition}
+A \textbf{feature} is a system property that is relevant to some stakeholder and is used to capture commonalities or discriminate between systems.
+\end{definition}
+
+\begin{definition}
+A \textbf{feature diagram} is a structural organization of a set of features. It is usually represented as a tree with the root representing a concept (e.g. software system) and its descendant nodes are features.
+\end{definition}
+
+
+\begin{definition}
+A \textbf{feature model} is a feature diagram with additional information such as descriptions, binding times, priorities, stakeholders and others.
+\end{definition}
+
+\begin{definition}
+ A \textbf{configuration} defines one possible product of a feature diagram. The relationship between a feature diagram and a configuration is comparable to a class and an instance in object-oriented programming.
+\end{definition}
+
+%\begin{definition}
+% A \textbf{specialization} is the process of generating a feature diagram from another feature diagram, where the set of configurations of the latter diagram is a true subset of the original one.
+% A \textbf{fully specialized} feature diagram  denotes only one configuration.
+%\end{definition}
+
+\begin{definition}
+ A \textbf{staged configuration} is the process of successively specializing a feature diagram followed by the derivation of a configuration from the most specialized feature diagram in the sequence.
+\end{definition}
+
+Consider the example feature model in Figure~\ref{fig:exFM}. This example contains several features as nodes and different relations between the features which will be explained now.
+
+
+\begin{figure}[hbt]
+\centering
+\begin{tikzpicture}[level distance=2cm,
+	level 1/.style={sibling distance=3.5cm},
+	level 2/.style={sibling distance=1.7cm, 
+		level distance=2cm},
+	]
+
+\node[class] (phone) {MobilePhone} [anchor=south]
+	child[mandatory] { node [class, mandatory] (calls) {Calls}}
+	child[mandatory] { node [class, mandatory] (msg) {Messaging}}
+	child[mandatory] { node [class, mandatory] (os) {OS} 
+		child[normal] { node [class] (android) {Android}}
+		child[normal] { node [class] (windows) {Windows}
+%		edge from parent node [right] {\scriptsize choose 1}
+		}
+		}
+	child[optional] { node [class, mandatory] (media) {Media}
+		child[normal] { node [class] (camera) {Camera}}
+		child[normal] { node [class] (mp3) {MP3}
+%		edge from parent node [right] {\scriptsize 1+}
+		}
+		}
+	;
+	
+\begin{scope}
+ \path[clip] (camera.north) -- (media.south) -- (mp3.north);
+ \fill[black] (media) circle (9mm);
+\end{scope}	
+
+\begin{scope}
+ \path[clip] (android.north) -- (os.south) -- (windows.north);
+ \draw[black] (os) circle (9mm);
+\end{scope}	
+\end{tikzpicture}
+\caption{Example of a feature model.}
+\label{fig:exFM}
+\end{figure}
+
+
+In the FODA feature diagram notation, features can be categorized into one of the following groups~\cite{feature-ori-pl-engineering, automated-test-data-generation-feature-models, staged-configuration, feature-model-survey}:
+\begin{itemize}
+ \item \textbf{Mandatory:} A mandatory feature is included in all products in which its parent feature appears. The nodes \textsf{Calls}, \textsf{Messaging} and \textsf{OS} in Figure~\ref{fig:exFM} are mandatory.
+ 
+ \item \textbf{Optional:} An optional feature can be included in any product in which its parent feature appears. The node \textsf{Media} in Figure~\ref{fig:exFM} is optional.
+ 
+ \item \textbf{Alternative:} Several child-features are within an alternative group, if only one feature can be selected if its parent feature is part of the product. The nodes \textsf{Android} and \textsf{Windows} in Figure~\ref{fig:exFM} under the node \textsf{OS} are an alternative group.
+ 
+ \item \textbf{Or-relation:} Several child-features are within an or-group, if at least one feature can be selected if its parent feature is part of the product. The nodes \textsf{Camera} and \textsf{MP3} under the node \textsf{Media} in Figure~\ref{fig:exFM} are in a or-relation.
+\end{itemize}
+
+From the descriptions of the categories, one can already see that a child feature can only be part of a product, if its parent feature does. 
+
+Additionally to the parent-child relations we can have two possible cross-tree constraints~\cite{automated-test-data-generation-feature-models}:
+
+\begin{enumerate}
+ \item \textbf{Requires:} A feature $A$ which requires another feature $B$, implies an inclusion of feature $B$ in the final product, if the feature $A$ has to be included.
+ \item \textbf{Excludes:} If a feature $A$ excludes another feature $B$, both features cannot appear in the same product.
+\end{enumerate}
+
+A \emph{configuration} or \emph{product} of the previous example would be \textsf{MobilePhone(Calls,Messaging,OS(Android), Media(Camera,MP3))} or \textsf{MobilePhone(Calls, Messaging,OS(Windows))}.
+
+
+%\todo{more stuff to be found in 2, crossref 3, 17, 1, 4, 16, 21}
+
+
+\subsection*{Extensions of Feature Models}
+
+We will now look at two important extensions for feature models, namely \emph{cardinality-based feature models} and \emph{extended feature models}. Both of them are essential for the specific problem identification in Section~\ref{sec:ericsson}.
+
+\subsubsection*{Multiplicities and Cardinalities}
+
+The main motivation behind having cardinality descriptions was for practical reasons and for conceptual completeness~\cite{feature-model-survey}. By having cardinality constraints, the feature diagram gets easier to read. All the functionalities from the original definition remain exactly the same. A cardinality is defined by a lower and an upper bound, similar to ER models in 
+data-bases or the multiplicities in class-diagrams.
+By transforming an optional relation into a $[0..1]$ and a mandatory relation into a $[1..1]$ we can model the former concepts based on features. These cardinalities are called \emph{feature cardinalities}.
+
+
+In the original definition of cardinality based feature models, such constraints are also given to a group of sub-features, namely \emph{multiplicity relations}, which work similar. It allows us to model the or-relation and alternative relations, i.e., alternative relations are getting mapped to $\langle 1 - 1 \rangle$ and or-relations to $\langle 1 - N \rangle$ with $N$ being the number of feature-children in the relation~\cite{feature-model-survey, card-based-feature-models-formalization}. In the example of Figure~\ref{fig:exFMext} we see the transformed model from Figure~\ref{fig:exFM} as a (extended) cardinality based model.
+
+
+Both concepts are taken from Czarnecki et. al.~\cite{card-based-feature-models-formalization} where a more formal definition of feature cardinality and group cardinality is given. 
+
+\subsubsection*{Extended Feature Models} 
+
+Already the early scientific work of the FODA process~\cite{feature-ori-pl-engineering} contemplated the inclusion of additional information in feature models: \emph{attributes}~\cite{feature-model-survey, auto-reason-fm}. They usually contain a name, a domain and a value from the domain. The original definition of extended feature models assumes that the value is already set at the feature model. However, a slightly different definition will be used in the specific problem description of Section~\ref{sec:ericsson} where only the domain and the name are given at the feature model, whereas the value is assigned at a specific configuration.
+
+
+\begin{figure}
+\begin{tikzpicture}[level distance=2cm,
+	level 1/.style={sibling distance=3.7cm},
+	level 2/.style={sibling distance=2cm, 
+		level distance=2cm},
+	]
+
+\node[class] (phone) {MobilePhone} [anchor=south]
+	child { node [class, mandatory] (calls) {Calls}
+	edge from parent node [left, above]
+	{\scriptsize $[1..1]$}}
+	child { node [class, mandatory] (msg) {Messaging}
+	edge from parent node [right, below] {\scriptsize $[1..1]$}}
+	child { node [class, mandatory] (os) {OS} 
+		child[normal] { node [class] (android) {Android}}
+		child[normal] { node [class] (windows) {Windows}
+		edge from parent node [right] {\scriptsize $\langle 1 - 1 \rangle$}}
+	edge from parent node [right, below]
+	{\scriptsize $[1..1]$}}
+	child { node [class, mandatory] (media) {Media}
+		child[normal] { node [class] (camera) {Camera}}
+		child[normal] { node [class] (mp3) {MP3}
+		edge from parent node [right] {\scriptsize $\langle 0 - 2 \rangle$}}
+	edge from parent node [left, below]
+	{\scriptsize $[0..1]$}}
+	
+	;
+
+
+
+\node[attribute, right=3cm of phone,text width=2cm,align=left] (phoneAttr) {name: version \\
+domain: string\\
+value: ``1.0 alpha''};
+\draw[attrOf] (phone.east) -- (phoneAttr.west);
+
+\node[attribute, below=1cm of msg,text width=2cm,align=left] (msgAttr) {name: maxLength \\
+domain: int\\
+value: ``128''};
+\draw[attrOf] (msg.south) -- (msgAttr.north);
+
+\node[attribute, below=1cm of calls,text width=3cm,align=left] (callsAttr) {name: quality \\
+domain: \{LOW,MEDIUM,HIGH\}\\
+value: ``HIGH''};
+\draw[attrOf] (calls.south) -- (callsAttr.north);
+
+\node[attribute, below=1cm of android, text width=2cm, align=left] (androidAttr) {name: codename\\ domain: string \\ value: ``Lollipop''};
+\draw[attrOf] (android.south) -- (androidAttr.north);
+
+\node[attribute, below=1cm of camera, text width=2cm, align=left] (cameraAttr) {name: resolution\\ domain: string \\ value: ``12MPixel''};
+\draw[attrOf] (camera.south) -- (cameraAttr.north);
+\end{tikzpicture}
+\caption[Cardinality-based example of a feature model]{Cardinality-based, extended version of the example in Figure~\ref{fig:exFM}}
+\label{fig:exFMext}
+\end{figure}
+
+
+
+
+\subsection{Automated Analysis on feature models}\label{subsec:automated-analysis}
+
+Since the automated analysis of feature models was already identified as a critical task in the original FODA report, some of the operations used to automatically analyze a feature models have been already proposed. However, there is a lack of agreement between different researchers on which operations are included in this task. For further information and a comprehensive list of the applicable operations, we refer to \cite{feature-model-survey}. We will only describe selected examples of the mentioned article, which are then used in the further chapters of this report.
+
+\begin{description}
+ \item[Calculating the number of products] reveals information about the flexibility and complexity of the SPL. The bigger this number is, the more flexible and complex is the SPL.
+ 
+ \item[Calculating the variability] calculates the ratio between the number of products of a FM and $2^n$ with $n$ being the number of leaf features. The lower the factor, the more compact the product line.
+ 
+ \item[Calculating the commonality] is applied to a single feature and calculates the percentage of the products where the feature appears. From a software engineering point of view, this could decide in which order the features are going to be developed. 
+ 
+ \item[Decision propagation] can automatically generate a feature model where some features are selected, some others are not. During a \emph{staged configuration} process~\cite{card-based-feature-models-formalization}, the user could select a feature and this operation can propagate this selection to other features in the feature model.
+ 
+ \item[Normalization] is the process of transforming any feature model into a canonical form. The goal is, to achieve structural uniqueness and removing structural redundancy. 
+\end{description}
+
+There are several approaches to perform an automated analysis on feature models. Bernavides et. al.~\cite{feature-model-survey} groups them into four groups, while we will focus on the \emph{constraint programming} analysis approach. The reason for that is, that it is the most powerful approach in terms of functionality and can deal with the previously mentioned extensions of feature models as well as rather complex constraints. 
+
+The model is usually translated into a \emph{constraint satisfaction problem (CSP)} and a constraint solver analyzes it and produce the previously introduced notions. The next section will introduce CSPs on a more theoretical level. 
+
+
+
+
+\section{Constraints in Configurations}\label{sec:constraints}
+
+
+
+As mentioned before, we can have constraints in feature models. The most basic constraints are those given in the previous section, i.e., \emph{inclusive} and \emph{exclusive}-constraints. In several applications however, constraints tend to span multiple features and, by talking about extended feature models, attributes as well. This amount of complexity we will also face in our specific scenario (see Section~\ref{sec:ericsson}), where even multiple XPath expressions are used to define these constraints. 
+
+However, much effort has been performed to represent a constraint in terms of a \emph{constraint satisfaction problem (CSP)} in recent academic work.
+
+
+Don Batory~\cite{fm-grammar-prop} claims that there is only limited support for feature constraints and connects prior results into an article combining feature models, grammars and propositional formulas. He provides mappings for productions as well as patterns of grammars of feature models. He then uses a boolean constraint propagation algorithm to prove \emph{satisfiability} or \emph{unsatisfiability}. 
+
+Bagheri et. al.~\cite{grammar-based-tc-generation-fm} extend these observations and provide coverage criterion for grammar-based feature models to generate test-cases. 
+
+These articles lead to the further inspection of CSPs.
+
+\subsection{Constraint Satisfaction Problems}\label{subsec:csp}
+
+The general idea behind constraint satisfaction problems is, to have a set of objects which must satisfy a certain number of constraints. The following definition introduces CSPs more formally:
+
+\begin{definition}\cite{csp}
+A \textbf{constraint satisfaction problem} (CSP) is defined by a set of \textbf{variables} $X_1, X_2, \ldots, X_n$, and a set of \textbf{constraints} $C_1, C_2, \ldots, C_m$. Each variable $X_i$ has a nonempty \textbf{domain} $D_i$ of possible \textbf{values}. Each \textbf{constraint} $C_i$ involves some subset of the variables and specifies the allowable combinations of values for that subset. A \textbf{state} of the problem is defined by an \textbf{assignment} of values to some or all of the variables ${X_i = v_i, X_j = v_j, \ldots}$. An assignment is called \textbf{consistent} or legal if it does not violate any constraint. A \emph{complete} assignment covers every mentioned variable. A \text{solution} to a CSP is a complete and consistent assignment. Some CSP's also require a solution that maximizes a \textbf{objective function}.
+\end{definition}
+
+Variations of this definition include finding of the whole possible set of assignments for a given problem, the number of solutions, or a maximal or minimal solution for a given problem. No matter how the original definition is changed, the problem remains NP-hard~\cite{csp}.
+
+A various number of problems can be mapped to a CSP, including 8 queens, graph coloring and other famous puzzles as well as real world applications from artificial intelligence or resource allocation in operating systems. 
+
+A frequent representation of such problems is a \emph{constraint graph} and \emph{depth first search} algorithms are popular for finding solutions, i.e., satisfiable assignments of CSPs. 
+
+We can further subdivide general CSPs according to their input domain~\cite{csp}:
+\begin{enumerate}
+ \item \emph{Discrete} variables and \emph{finite} domains. This is the simplest kind of CSPs. Graph coloring and the 8 queens problem are instances of this type. If the maximum size of any variable in a CSP with $n$ variables is $d$, then the number of possible complete assignments is $\mathcal{O}(d^n)$. Boolean CSPs include boolean variables, i.e., variables in the domain $\{\mathtt{true}, \mathtt{false}\}$. These problems include the propositional SAT problem, which we will cover in the next Subsection. The obvious conclusion for the SAT problem yields $\mathcal{O}(2^n)$ solutions.
+ 
+ \item \emph{Discrete} variables can also have \emph{infinite} domains, e.g., the set of integers or strings. In this case, we cannot simply enumerate all the valid constraints. Instead, a \emph{constraint language} has to be used. We also cannot enumerate all possible assignments for such problems. There are special \emph{linear constraints} as well as \emph{nonlinear constraints} on integer variables where solution algorithms can sometimes reduce the integer constraint problems to finite-domain problems. 
+ 
+ \item \emph{Continuous domains} are commonly used in real-world problems. \emph{Linear programming} problems are the best-known category of such problems. 
+\end{enumerate}
+
+Additionally to the type of variables, one can categorize CSP's also into the types of constraints~\cite{csp}:
+\begin{enumerate}
+ \item \emph{Unary constraints} are the simplest type of constraints where only one variable is involved. 
+ \item \emph{Binary constraints} are constraints involving two variables. 
+ \item \emph{Higher-order constraints} involve three or more variables. 
+\end{enumerate}
+
+Different ways of solving CSP's can also involve a SAT solver for boolean CSP's or SMT solvers for problems in first-order logic with respect to background theories. We will discuss SAT and SMT solvers in the next subsections.
+
+Benavides et. al.~\cite{auto-reason-fm} provide, translations from feature models into constraints for a CSP. After that, they show how to derive automated analysis metrics using this translation.
+
+\subsection{SAT Solvers}\label{subsec:sat}
+As heard before, the \emph{satisfiability of propositional logic (SAT)} is a boolean CSP whose task is to determine if a propositional (boolean) formula is \emph{satisfiable}, i.e., if there is an assignment for a propositional formula, such that this formula evaluates to \verb|true|. A formula for which such an assignment does not exist is said to be \emph{unsatisfiable}. A SAT solver is a program which implements an algorithm to find such a satisfiable assignment of a propositional formula.
+
+Propositional satisfiability is probably the most important problem in theoretical computer science. As all other CSP's it is NP-complete~\cite{cook}. 
+However, powerful solvers have been developed in the last decades, involving astonishing decision procedures to find assignments in a reasonable amount of time. 
+In fact, it can be said that SAT solvers are the fastest tools for propositional problems and many real-world problems, assuming a smart encoding into propositional logic.
+The drawback of such solvers is the input language: each problem has to be encoded into propositional logic, which can be error-prone and difficult. Thus, encoding tools are needed to transform a real world problem into a SAT problem. Another problem is, that propositional satisfiability and optimization differ in their nature of problem solving. Further, the representation of many real-worlds problems is not able to provide good encodings, e.g., arithmetic, set-theory, declarative data-types etc. which led to the investigation of a more advanced and also a more generalized form of the SAT problem: \emph{satisfiability modulo theory}. 
+
+\subsection{Satisfiability Modulo Theory}\label{subsec:smt}
+
+Some problems need some more powerful formalisms than propositional logic.
+An example of such a more powerful formalism is \emph{first order logic (FOL)}. 
+
+\begin{definition}
+A many-sorted first-order \textbf{signature} $\Sigma$ is composed of the following parts:
+\begin{itemize}
+ \item A set of \textbf{sorts}. 
+ \item A set of \textbf{function symbols}.
+ \item A set of \textbf{predicate symbols}.
+\end{itemize}
+Each function symbol $f$ has an associated arity of the form $\sigma_1 \times \ldots \times \sigma_n \to \sigma$, where $\sigma_1, \ldots, \sigma_n, \sigma$ are sorts. If $n=0$, we say $f$ is a constant symbol. \\
+Similarly, each predicate symbol p has an associated arity of the form $\sigma_1 \times \ldots \times \sigma_n$. If $n=0$, we say $p$ is a propositional symbol. \\
+We assume a set of \textbf{variables} $X$, where each variable is associated with a sort.\\
+Each \textbf{term} $t$ has to be associated to a sort $\sigma$, and has the form $x$ or $f(t_1, \ldots, t_n)$, where $x$ is a variable with sort $\sigma$, and $f$ is a function symbol with arity $\sigma_1 \times \sigma_n \to \sigma$ where for each $i \in \{1, \ldots, n\}$, $t_i$ has sort $\sigma_i$. \\
+An \textbf{atom} is of the form $p(t_1, \ldots, t_n)$, where $p$ is a predicate symbol with arity $\sigma_1 \times \ldots \times \sigma_n$, and for each $i \in \{1, \ldots, n\}$, $t_i$ is a term with sort $\sigma_i$.\\
+A \textbf{formula} $\phi$ is defined by the following BNF grammar:
+ \[
+ \begin{array}{l c l}
+ \phi &::= & p(t_1, \ldots, t_n)\\ 
+ 	& | & (\neg \phi)\\
+ 	& | & (\phi \land \phi)\\ 
+ 	& | & (\phi \lor \phi)\\
+ 	& | & (\phi \rightarrow \phi)\\
+ 	& | & (\phi \leftrightarrow \phi)\\
+ 	& | & (\forall x : \sigma . \phi)\\
+ 	& | & (\exists x : \sigma . \phi)
+ \end{array}
+ \]
+where $p$ is a predicate, $t_1, \ldots, t_n$ are terms, $\neg, \land, \lor, \rightarrow$ and $\leftrightarrow$ are propositional operators and $\forall$ as well as $\exists$ are quantifier.
+A $\Sigma$\textbf{-formula} $\phi$ is a formula where each symbol in $\phi$ is in $\Sigma$.
+\end{definition}
+
+Since many-sorted FOL deals with quantifiers, there is one more definition to take into account:
+
+\begin{definition}
+A variable $x$ is \textbf{free} in formula $\phi$, if it is not bound by any quantifier $\exists$,$\forall$.\\
+%A \textbf{sentence} is a formula without free variable.\\
+$vars(\phi)$ is used to denote the set of free variables in $\phi$.\\
+A \textbf{quantifier-free formula} is a formula not containing $\exists$ or $\forall$.
+A \textbf{ground formula} is a formula that does not contain any free variables.
+\end{definition}
+
+So far we only considered ground FOL as an input of a SMT solver. However, the full power of SMT comes with so-called \emph{background theories}. 
+
+
+\subsubsection*{Background Theories}
+
+A \emph{background theory} constraints the interpretation of some symbols, both functions and predicates. Due to this high complexity it is infeasible to build a procedure that can solve arbitrary SMT problems~\cite{smt-appetizer}. Instead, such problems are subdivided into a number of theories.
+
+\begin{definition}
+A \textbf{theory} is a set of \textbf{ground formulas}. A $\Sigma$-theory is a collection of sentences over a signature $\Sigma$. Given a theory $T$, we say $\phi$ is \textbf{satisfiable modulo T} if $T \cup \{\phi\}$ is satisfiable. \\
+$M \models_{T} \phi$ denotes $M \models T \cup \{\phi\}$ where $M$ is a model which satisfies $T \cup \{\phi\}$.
+\end{definition}
+
+
+
+\begin{definition}
+A satisfiability problem for theory $T$ is \textbf{decidable} if there exists a procedure $\mathfrak{S}$ that checks whether any quantifier-free formula is satisfiable or not. $\mathfrak{S}$ is also called a \textbf{decision procedure} for $T$.
+\end{definition}
+
+The question of which theories are integrated within a SMT solver depends on the implementation. However the following theories~\cite{smt-appetizer} are essential and have gained more attention than others:
+
+\begin{description}
+ \item[Linear arithmetic] with the only arithmetical functions $+$ and $-$ as well as numerical constants and variables. Multiplication is only allowed with at least one constant. Real numbers are associated with real arithmetic. Relations, such as $=, \leq, <$ form atomic predicates. 
+ 
+ \item[Difference arithmetic] is a part of linear arithmetic, where predicates of the form $x - y \leq c$, where $c$ is a numerical constant, are allowed. 
+ 
+ \item[Non-linear arithmetic] over quantifier-free reals is decidable. On the other hand, Hilbert's 10th problem is proven to be undecidable, which is non-linear arithmetic over integers. By adding quantifiers, the problem gets worse (peano arithmetic). 
+ 
+ \item[Free functions] also known as \emph{uninterpreted functions}, are highly important for SMT solvers, since most of other theories (e.g. Arrays) can be reduced to free functions. The \emph{congruence closure algorithm} is the most prominent algorithm to compute the smallest set of implied equalities. Efficient algorithms to compute the congruence closure are subject of current research.
+ 
+ \item[Bit-vectors] are used for \emph{machine-arithmetic}. This theory is often reduced to \emph{boolean satisfiability}. \emph{Bit blasting}, i.e., the direct translation of bit-vectors into propositional logic, and other techniques are investigated by current research.
+ 
+ \item[Arrays] are a useful mean to encode state-changes of a program. The problem of checking whether a quantifier-free formula is satisfiable modulo this theory is decidable.
+\end{description} 
+
+There are many more background theories to mention which include theories of \emph{pairs} or \emph{tuples}, \emph{acyclic finite lists} and \emph{strings}. Most of them are currently implemented using decision procedures of other theories, mostly \emph{free functions}.
+
+
+
+The final aspect of a SMT solver deals with the combination of the decision procedures of a SAT solver, with a \emph{theory solver}. Since most of the SAT decision procedures are build upon the DPLL algorithm~\cite{dpll}, the result of this combination is called  DPLL($T$)~\cite{dpllt}. We refer to the literature for a further study of the mentioned decision procedures.
+
+Another important aspect is the combination of different theories. Worth mentioning are the \emph{Nelson-Oppen combination} as well as \emph{delayed theory combination}. We refer to the literature for a further study.
+
+\subsubsection*{SMT-LIB and SMT-COMP}
+
+To formulate SMT problems, the SMT-LIB-initiative has been founded in 2003 \footnote{\url{http://smt-lib.org/}}. 
+Its aim is to facilitate research and development in SMT. One of the biggest achievements of this initiative is the development of the SMT-LIB input language~\cite{smt-lib2} which is used by several solvers. In general, the syntax is borrowed from Common LISP and provides a big variety of constructs to support different logics, theories and instructions for the solver. A comprehensive explanation of the SMT-LIB syntax can be found in \cite{smt-lib2}. 
+
+Further, SMT-LIB standardizes descriptions of background theories, involving a development community. A large library of benchmarks are provided and it promotes useful software tools to the SMT community. \\
+
+Similar to the SAT competitions, the SMT-COMP takes place every year since 2005, where the best SMT solvers in several categories (i.e., logics) are awarded. The increasing performance and functionality of the different solvers from year to year is observable and the motivation to use SMT-LIB as a standard input format is a central aspect.
+
+
+\section{Variability Modeling at Ericsson}\label{sec:ericsson}
+
+The models we will investigate further are used to support operations and maintenance on a managed object. Such a managed object is a conceptual view of a resource such as a network component, a host system or an application. The models we are talking about are called \emph{Ericsson Common Information Model (ECIM)}. The configuration of the system is one possible application of the models, but generally they represent an abstract view of the system which an operator (user) can interact with. As stated before, the interaction is performed on another part of the system, namely the configuration manager. The specification of the ECIM as well as all other mentioned concepts in this section are part of the meta-model description of ECIM, an internal document.
+
+The basic building-block of an ECIM model is a \emph{Managed Object Class (MOC)}. Each MOC represents a managed network element on an interface level. A \emph{Managed Object (MO)} is an instance of a MOC. Thus, the model only describes the MOC, whereas the user enters the MO at run-time. 
+MOCs are structurally connected via \emph{containment-relations}, which define the parent-child relationship between two classes. These relationships also define the \emph{cardinality}, i.e., the minimal and maximal occurrences of a MO under a certain MOC. A \emph{Management Information Model (MIM)} is used to group one or more MOCs into a logical unit. We will now look at the mentioned aspects more in detail.
+
+
+\subsubsection*{Classes and Attributes}
+
+As we heard before, MOCs are the building blocks of the overall model. In the sequel, we will use the term \verb|class| to refer to a MOC. It is composed of a set of \verb|attribute|s and one unique \verb|key| attribute. Further, a set of  \emph{dependencies} can be declared on a \verb|class|, which will be explained at a later point.
+A \verb|class| can also have a property called \verb|isSystemCreated|. If this property is given, the system takes care of the creation of the MO of this class and excludes the user from creating, modifying and deleting any instance of this class. 
+
+Attributes are defined by a \emph{name}, a \emph{data-type} and a set of \emph{properties}. 
+The name should be self explanatory. Data-types are comparable to the ones used in object-oriented programming. Properties define further characteristics of an attribute. For example \verb|readOnly|, \verb|isNillable| or \verb|mandatory| can be such properties. Next to the attribute-properties, also a data-type can have properties. The following list defines the possible data-types used for attributes of a \verb|class|:
+
+
+
+
+These base-types can be seen as the building-blocks for a class. However, there are situations where the need for a richer data-type is given. In this case, we have a reference in the attribute to one of the following data-types, which will be specified outside the class and are located easily through its \verb|mim|:
+
+\begin{itemize}
+ \item \verb|derivedDataType| contains the previously defined base-types. The reason to encapsulate these types outside the attribute has design reasons. Also re-usability is a reason for having derived data-types.
+ 
+ \item \verb|enum| is an enumeration of a finite set of \verb|enumMember|s. Each of such a member contains a \verb|name| and an integer \verb|value|.
+ 
+ \item \verb|struct| contains a finite set of \verb|structMember|s, each one of the type \verb|enum|, \verb|string|, \verb|boolean| or any other base type. It can have the \verb|isExclusive| property, which indicates that for each instance only \emph{one} member can be used, i.e., it implements the semantic of a \verb|union| in the C programming language.
+ 
+% \item \verb|sequence| is a sequence of values of the same type. It can be limited by the \verb|range| property, including upper and lower bounds of the allowed range.
+\end{itemize}
+
+The document further denotes that the model should be open for changes on data-types, e.g., it is not possible to model a struct of structs at the moment but implementations using the meta-model should be open for such changes.
+
+The \verb|key| attribute has a special role and uniquely identifies a MO in a set of MOs of the same type. It is comparable to a primary key in a data-base table. It is always a \verb|string| attribute, so it could be constrained with a regular expression and it can only be set at creation time. In other words we cannot change it anymore once the instance is created. Further it is important for the \verb|moRef| attributes of other MOs.
+
+
+\subsubsection*{Associations, Relations and Cardinalities}
+
+The structure between the classes and later the MOs are defined by parent-child \emph{relations} and cardinalities to define the dimension. A cross-tree \emph{association} can exist between two classes (MOs) in two distinct paths in the overall tree. Consider the toy-example in Figure~\ref{fig:relEx} which represents a little ECIM model and a corresponding configuration. \\
+
+We have a class \textsf{A} which has two child-classes \textsf{B} and \textsf{C}. All three classes have a \verb|key| attribute, whereas \textsf{C} has an additional \verb|moRef| attribute, namely \verb|encapsulation| pointing to \textsf{C}. The order of each instance in the configuration defines the structure. We can see that MO \textsf{C=3} contains the string \verb|"A=1,B=2"| as value, i.e., the path from the root MO to the desired \emph{client} MO.
+
+
+An important note has to be given on the cardinalities, where we can have unbounded cardinalities, e.g., $[0..\infty]$. For a test-case generation process it is obvious that we have to remove by inserting dedicated values for $\infty$.
+
+\begin{figure}[hb]
+\centering
+ \begin{subfigure}[b]{0.5\textwidth}
+  \begin{tikzpicture}
+   \node[class] (a) {A}
+    child {node [class] (b) {B}
+    edge from parent node [left]
+    				{\scriptsize $[0..1]$}
+    }
+    child {node [class] (c) {C}
+    edge from parent node [right]
+    				{\scriptsize $[0..1]$}};
+    
+   \draw[dashed,-latex] (c) to (b);	
+   \node[attribute, right=0.5cm of c, text width=2.5cm,align=left](enc) {encapsulation:moRef(B)};
+   \draw[attrOf] (c.east) -- (enc.west);
+  \end{tikzpicture}
+  \caption{ECIM model.}
+ \end{subfigure}
+ \begin{subfigure}[b]{0.5\textwidth}
+  \begin{tikzpicture}
+   \node[class] (a) {A=1}
+       child {node [class] (b) {B=2}}
+       child {node [class] (c) {C=3}};
+       
+      \draw[dashed,-latex] (c) to (b);	
+      \node[attribute, right=0.5cm of c, text width=2.5cm,align=left](enc) {encapsulation=``A=1,B=2''};
+      \draw[attrOf] (c.east) -- (enc.west);
+  \end{tikzpicture}
+  \caption{Configuration.}
+ \end{subfigure}
+ \caption{Relations and associations on an example.}
+ \label{fig:relEx}
+\end{figure}
+
+\subsubsection*{Dependencies}
+
+Dependencies are conditions for the resulting configuration of a ECIM model. They describe the allowed values for a configuration. Since they are nothing else than constraints, we will use the terms interchangeably.
+
+As denoted earlier, dependencies can be declared on a \verb|class|. They refer to the instances, i.e., MOs of the declared class. Dependencies validate the resulting configuration, i.e., the user-defined MOs at run-time. In other words, the dependencies are verified whenever the user commits the configuration to the system. Currently, those dependencies are defined using Schematron. \\
+
+
+\emph{Schematron}\footnote{\url{http://www.schematron.com/}} is a validation language for XML documents. It defines assertions which have to be satisfied in order to pass the test and for the document to be valid. Schematron is usually embedded into a XML file and uses XPath queries to express the constraints.
+
+In our context, Schematron rules use a sub-set of XPath, i.e., the functionality is limited. 
+
+Each rule has a reference value, i.e., the starting point which is usually the class within it is defined.
+
+The used syntax include:
+\begin{itemize}
+ \item Literals, i.e., integers and strings.
+ 
+ \item Unary and binary \emph{boolean} operators: $\ \wedge\ ,\ \vee\ ,\ \neg\ , \ \otimes\ $
+ 
+ \item Binary \emph{comparison} operators: $\ <\ , \ \leq\ , \ >\  ,\ \geq\ , \ =\ , \ \neq\ $
+ 
+ \item Binary \emph{arithmetic} operations: $\ +\ , \ -\ , \ \ast\ , \ \div\ \ ,\ \bmod$
+ 
+ \item \emph{Path expressions} can be seen as a list. Each element denotes one move within the XML tree. The two special steps \verb|.| and \verb|..| have the same meaning as in a UNIX file-system, i.e., \verb|..| to move from a node to its parent instance, and \verb|.| to refer to the current instance. For example \verb|../A/B/@c| denotes to go first one node up, then select all \verb|A| instances and then select all \verb|c| attributes of a \verb|B| instances. In other words it ``navigates'' through the tree.
+ 
+ \item \emph{Filter expressions} can be seen as predicates for path expressions. We add a condition to select a node in a path expression: \verb|../A/B[@c = 1]|. In this case we select only those \verb|B| instances (under all \verb|A| instances) whose \verb|c| attribute has value \verb|1|. 
+ 
+ \item \emph{Function calls} allow the use of special functions. Only a small subset is used from the original XPath range of functions. Those include:
+ \begin{itemize}
+  \item \verb|count(expr)|: simply returns the number of occurrences of a path expression \verb|expr|.
+  
+  \item \verb|are-distinct-values(expr)|: asserts if all values inside the evaluated \verb|expr| have 
+  a distinct value.
+  
+  \item \verb|matches(string, pattern)|: checks if the given \verb|string|-attribute matches a regular expression \verb|pattern|.
+  
+  \item \verb|exists(expr)|: is mainly used for \verb|moRef|s, i.e., if the client exists the \verb|expr| is pointing to. If \verb|expr| is not a \verb|moRef| this function checks if \verb|expr| is not \verb|null|.
+  
+  \item \verb|contains(expr, string)|: checks if a given \verb|string| is inside an expression.
+  
+  \item \verb|string-length(string)|: returns the length of a given \verb|string|. 
+ \end{itemize}
+ 
+ %\item Quantified expression \verb|every $var in expr satisfies expr2|: Instead of \verb|every|, also \verb|some| is allowed. Can be seen as a for-loop. Each value in \verb|expr| (temporarily saved into \verb|$var|) has to satisfy the constraint in \verb|expr2|. \todo{should i mention it?}
+
+\end{itemize}
+
+With this set of XPath constructs one is able to express a big variety of constraints. We will see later how they are used to create test-cases.
+
+\subsection{Example}
+
+We will now look at an example, i.e., a toy-example of a ECIM model and its resulting configuration. The example ECIM model can be seen in Figure~\ref{fig:ecimEx}. We ignored the presence of derived data-types. \textsf{ManagedElement} and \textsf{Transport} are \verb|systemCreated| classes, i.e., we are not interested in the creation of those MOs and neither in the modification of attributes. Hence we can assume that both MOs are present. 
+
+
+
+We can now create a configuration from the existing model. An example of such a configuration would be the one in Figure~\ref{fig:confEx}.
+
+\begin{figure}[htb]
+\centering
+\begin{tikzpicture}[
+	level 1/.style={sibling distance=2cm},
+	level 2/.style={sibling distance=3cm}]
+
+\node [class,dashed] (managedElement) {ManagedElement=1}
+	child { node [class,dashed] (transport) {Transport=1}
+		child { node [class] (vlanport) {VlanPort=2}}
+		child { node [class] (router) {Router=3}
+			child { node [class] (interface) {InterfaceIPv4=4}}}};
+
+%\draw[dashed,-latex] (interface) -- (vlanport) node [near start] {\scriptsize encapsulation};	
+	
+\node[attribute, right=1cm of router, align=left] (routerAttr) {
+ttl=100\\
+userLabel=``bar''
+};
+\draw[attrOf] (routerAttr.west) -- (router.east);
+	
+\node[attribute, right=0.5cm of interface, align=left](interfaceAttr) {
+mtu=1,000\\
+operationalState=ENABLED\\
+arpTimeout=0\\
+pcpArp=7\\
+encapsulation=``ManagedElement=1,\\
+   \hspace{1em}Transport=1,VLanPort=2''
+};
+\draw[attrOf] (interfaceAttr.west) -- (interface.east);
+
+\node[attribute, left=0.5cm of vlanport,align=left] (vlanportAttr){
+vlanId=``foo''\\
+isTagged=true
+};
+\draw[attrOf] (vlanportAttr.east) -- (vlanport.west);
+\end{tikzpicture}
+\caption[Example of a ECIM configuration.]{Example of a ECIM configuration.}
+\label{fig:confEx}
+\end{figure}
+
+Important to note by looking at this example is the qualified name of the different MOs: while, due to space limitations, we denoted for example \textsf{Router=3}, the fully qualified name would be \textsf{ManagedElement=1, Transport=1, Router=3}. Thus, the path to a MO defines the actual name of it. This also explains the value of the \verb|encapsulation| attribute on the \textsf{InterfaceIPv4=4}.
+In order to apply the example configuration to the configuration manager, the operator needs to insert this configuration with specific commands into the configuration manager. However, the syntax of the commands are only interesting for the resulting tool and are not further explained.
+
+\subsection{ECIM vs. Feature Models}
+
+We have seen that feature models are mostly used to describe variability in software product lines, i.e., they affect the build-structure of a software product. On the other hand, ECIM affects more than that. It can be said, that the different classes in ECIM are responsible for whole components in the system. From another perspective, ECIM classes are instantiated at run-time of the actual system while feature models are used at build-time. Feature models do not have knowledge about instantiation, but rather describe the different possibilities of \emph{selection} of features. \\
+
+Further, the term \emph{configuration} refers to the instantiation or a \emph{product} of a feature model, while it refers to a system-configuration in the ECIM domain. Since the semantic meaning is somewhat the same, we use the term interchangeably.
+
+Also attributes are treated differently in ECIM. While attributes have a fixed name, domain and value in feature models, we only have the name and the domain in ECIM. The values are defined after creation, i.e., after the MO is created by specifying the name and the key, the attribute-values have to be set. After a \verb|commit|, the inserted MO structure is validated.
+
+Despite these conceptual differences, the general structure of a extended, cardinality-based feature model and the ECIM structure have similarities: The difference between a feature model configuration and a possible ECIM configuration lies in the definition of inner nodes: while inner nodes are only abstract configuration items in a fully configuration, they are actual MOs in the ECIM domain. 
+
+
+
+
+
+
+\section{Testing Feature Models: Current Achievements and Proposed Solution}\label{sec:test-conf}
+
+Many methods have been proposed to test configurable software. Automated analysis of feature models can lead to a better understanding of the overall characteristics and properties of a feature model. In other words, they define the objectives in the test-case generation. 
+
+To represent the described constraints in terms of XPath expressions, the use of a SMT solver seems to be the correct way to go. A highly desired property is, that the SMT solver finds a model, i.e., a test-case which satisfies the constraints if it is possible.
+
+As denoted before, for attributes not involved in any constraint, we will use a combinatorial approach. In this way, the SMT solver somehow completes the work of the combinatorial approach. 
+
+For the structural properties, i.e., the parent-child relations, bi-directional associations as well as involved cardinalities, we choose a staged configuration process, as presented by Czernicki et. al.~\cite{card-based-feature-models-formalization}, which we will cover in the next Chapter.
+
+Even though the proposed solution works, we need to re-define the definitions of automated analysis from Section~\ref{sec:models} to fit them into our specific description.
+
+\begin{description}
+ \item[Number of Products ($prod(\mathcal{FM})$):] This number is an important metric to determine the complexity and flexibility of the feature model. Determining this metric involves a dynamic-programming approach. The formula to compute the number of configurations is 
+ \begin{align*}
+   prod(\mathcal{FM}) &= \prod_{p \in \mathcal{P}}  \max prod(p)\\
+   prod(p) &= \{ \pi_{i}^{p}, \forall i \in classes(p) \}\\
+   \pi_{i}^{p} &= \pi_{i-1}^{p} + \max{I(c_{i}^{p})} *  \prod_{0 \leq k < i} \max{I(c_{k}^{p})}\\
+   \pi_{0}^{p} &= \max{I(c_{0}^{p})} 
+ \end{align*}
+ with the following actors:
+  \begin{itemize}
+   \item $\mathcal{FM}$ is the feature model.
+   \item $\mathcal{P}$ is the set of distinct paths from the root node in $\mathcal{FM}$.
+   \item $p$ is a class from $\mathcal{P}$.
+   \item $classes(p)$ is the ordered set of classes within a path $p$.
+   \item $c_i^p$ is the $i$th class of path $p$ starting with 0.
+   \item $I(c_i^p)$ is the interval of class $c_i^p$.
+   \item $\pi_i^{p}$ maximum number of products containing the first $i$ classes on path $p$. Its computation is the number of products with $i-1$ classes plus the maximum interval times the product of all upper bounds of intervals lower than $i$.
+   \item $prod(p)$ is the set of maximum products of each length $i$ of a path $p$.
+   \item $prod(\mathcal{FM})$ is the product of the maximal products of the maximal length of all paths in $\mathcal{FM}$.
+  \end{itemize}
+ 
+ \item[Variability:] the variability is actually obsolete in our case, since every intermediate node is part of the configuration itself and the cardinalities already tell us the complexity and thus, the variability of the model. 
+ 
+ \item[Extra Constraint Representativeness (ECR):] Mendon\c{c}a et. al.~\cite[p.~2]{ecr} introduce the ECR on a feature to be the ratio between the number of classes involved in a constraint and the overall number of classes. Since we are dealing with more complex constraints involving attributes, we will use a slightly modified ratio, namely \emph{Attributed Extra Constraint Representativeness (AECR)}, as follows:
+ \begin{align}
+  AECR_{\mathcal{C}} &= \frac{a_{\mathcal{C}}}{d_{\mathcal{C}}} \\
+  AECR_{\mathcal{FM}} &= \frac{\sum\limits_{\mathcal{C} \in \mathcal{FM}} a_{\mathcal{C}}*AECR_{\mathcal{C}}} {\sum\limits_{\mathcal{C} \in \mathcal{FM}} a_{\mathcal{C}}}
+ \end{align}
+ where $d_{\mathcal{C}}$ is the number of attributes in a class $\mathcal{C}$ dependent from at least one constraint and $a_{\mathcal{C}}$ is the number of attributes of a class $\mathcal{C}$. Another name for this metric would be  \emph{constraint density}. We decided to weight each $AECR_{\mathcal{C}}$ with the number of attributes before dividing it with the overall number of attributes.
+\end{description}
+
+Thus, the number of products and the AECR will give us enough values for a thorough investigation of each feature model we want to examine further.
+
+%The objectives between combinatorial test-case and CSP aided test-case generation are fundamentally different. However, in real world scenarios the set of constrained features or attributes can be less than the overall ones. Thus, it is more convenient to measure the complexity of a model using the \emph{extra constraint representativeness (ECR)}~\cite[p. 2]{ecr}. Moreover, we can treat all attributes involved in at least one constraint with the SMT solver, by finding a model and for the rest applying a combinatorial approach.
+%
+%Mendon\c{c}a et. al.~\cite[p.~2]{ecr} introduce ECR on a class basis, but exclude the presence of attributes, which is fundamental in our approach. Thus, we define the \emph{attribute extra constraint representativeness (AECR)} as follows:
+%
+%\begin{definition}
+%Assume a feature $f$ with the corresponding attributes $A$. Let $c$ denote the number of attributes which are involved in at least one constraint with $0 \leq c \leq |A|$. Then we can define the \textbf{feature-based AECR} as 
+%\begin{align*}
+%\mathcal{C}_f & = \left\{ \begin{array}{l l}
+%0 & \quad \text{if}\ c = 0\\
+%\frac{a}{c} & \quad \text{otherwise}
+%\end{array} \right.
+%\end{align*}
+%Similarly, the \textbf{model-based AECR} of a feature model $m$ can be defined as 
+%\[
+%\mathcal{C}_m = \frac{\sum_{i = 0}^{n} C_i}{n}
+%\]
+%where $n$ is the number of features in a model $m$.
+%\end{definition}
+%
+%This ratio indicates how much a given model is constrained and indicates the importance of a SMT solver. 
+
+
+\subsection{Current Work}
+
+
+Mendon\c{c}a et. al.~\cite{ecr} provide an approach to translate feature models into \emph{binary decision diagrams (BDD)} and treat them with BDD Engines. The biggest problem when dealing with BDDs is the NP-complete \emph{variable ordering} problem. The structure and especially the size of a BDD is highly sensitive to the variable ordering. In their work they develop a heuristic and use a clustering algorithm to deal with this problem.\\
+
+Another approach is addressed by Johansen et. al.~\cite{t-wise-feature-models}. They use combinatorial interaction testing to select a suitable subset of products (configurations) of a feature model with respect to some coverage strength. They address the problem of scalability, i.e., large feature models. One of the largest product lines where the feature model is publicly available is the Linux Kernel,  involving 7,000 features and 200,000 constraints. Their main approach is, to use a greedy algorithm based on Chv\'atal's algorithm. This technique uses a greedy heurisitic for the covering array problem, which is another combinatorial approach.\\
+
+\emph{Metamorphic testing} techniques are similar to mutation based testing techniques, where new test cases are generated, which are based on test data. The original test data is transformed using a metamorphic relation. Segura et. al.~\cite{product-line-mutation-analysis} propose such a set of metamorphic relations between the feature model and their set of products as well as a test-case generator.

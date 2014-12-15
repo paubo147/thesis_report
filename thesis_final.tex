@@ -1,0 +1,636 @@
+% !Tex root = thesis_final.tex
+% !TeX spellcheck = en_US
+\documentclass[12pt,swedish,english]{report}
+
+\usepackage{csvsimple}
+
+\usepackage{subcaption}
+\usepackage{multicol}
+\usepackage{fullpage}
+\usepackage{lscape}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[tikz]{mdframed}
+\PassOptionsToPackage{svgnames}{xcolor}
+\usepackage{graphics}
+%\usepackage[round]{natbib}
+\usepackage{mathtools}
+\usepackage[iso]{isodate}
+\usepackage[english]{babel}
+\usepackage{appendix}
+\usepackage{enumerate}
+\usepackage{longtable}
+\usepackage{array}
+
+\usepackage{listing}
+
+
+
+
+\usepackage[margin=4cm]{geometry}
+\usepackage{todonotes}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{mathrsfs}
+
+\definecolor{maroon}{rgb}{0.5,0,0}
+
+
+\usepackage{listings}
+\definecolor{maroon}{rgb}{0.5,0,0}
+\definecolor{darkgreen}{rgb}{0,0.5,0}
+\definecolor{turque}{rgb}{0,0.5,0.5}
+
+
+\lstdefinelanguage{XML}
+{
+	basicstyle=\footnotesize\ttfamily,
+	morestring=[s]{'}{'},
+	captionpos=b,   
+	showstringspaces=false, 
+	breaklines=true, 
+  	postbreak=\space,
+	morecomment=[s]{?}{?},
+	morecomment=[s]{!--}{--},
+	commentstyle=\color{darkgreen},
+	moredelim=[s][\color{black}]{>}{<},
+	moredelim=[s][\color{red}]{\ }{=},
+	stringstyle=\color{blue},
+	identifierstyle=\color{maroon}
+}
+
+\lstdefinestyle{mypython}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  frame=L,
+  xleftmargin=\parindent,
+  language=Python,
+  showstringspaces=false,
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\bfseries\color{green!40!black},
+  commentstyle=\itshape\color{purple!40!black},
+  identifierstyle=\color{blue},
+  stringstyle=\color{orange},
+}
+
+%BEGIN TIKZ
+\usepackage{tikz}
+\usepackage{tikz-qtree}
+\usepackage{pgf-umlsd}
+\usetikzlibrary{matrix, trees,angles,arrows,calc,arrows, shapes, positioning, intersections}
+
+\tikzset{
+	class/.style={rectangle,
+		draw=blue!70,
+		fill=blue!20,
+		rounded corners,
+		minimum size=8mm,
+		},
+	attrClass/.style={rectangle,
+		draw=blue!70,
+		fill=blue!20,
+		rounded corners,
+		minimum size=8mm,
+		rectangle split,
+		rectangle split parts=2,
+		every two node part/.style={
+			text width=3cm,
+			align=left,
+			font={\tiny \ttfamily}
+		},
+		anchor=north
+	},
+	classclass/.style={rectangle,
+		draw=blue!70,
+		fill=blue!20,
+		rounded corners,
+		rectangle split,
+		rectangle split parts=3,
+		font={\scriptsize \ttfamily}
+		},	
+	attribute/.style={rectangle,
+		draw=yellow!70,
+		fill=yellow!20,
+		font=\tiny \ttfamily,
+	},
+	edge from parent/.style={draw},
+	edge from parent path={(\tikzparentnode.south) -- (\tikzchildnode.north)},
+	every node/.style={font=\footnotesize \sffamily},
+	mandatory/.style={edge from 					
+			parent/.style={draw,-*}},
+	optional/.style={edge from 					
+				parent/.style={draw,-o},
+				},
+	attrOf/.style={dashed, ->},
+	normal/.style={edge from parent/.style={draw},
+	},
+	inherits/.style={->, >=open triangle 90, thick},
+	assoc/.style={-diamond}
+}
+\pgfdeclareshape{comment}
+{
+\inheritsavedanchors[from=rectangle]%
+\inheritanchorborder[from=rectangle]%
+\inheritanchor[from=rectangle]{center}%
+\foreach \anchor in {north,north west,north east,center,west,east,mid,
+    mid west,mid east,base,base west,base east,south,south west,south east}{%
+    \inheritanchor[from=rectangle]{\anchor}}%
+
+
+}
+
+
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter] % definition numbers are dependent on theorem numbers
+\newtheorem{example}{Example}[chapter] % same for example numbers
+
+
+
+\selectlanguage{english}
+\renewcommand{\author}{Paul Borek}
+\renewcommand{\title}{SMT Aided Test Case Generation For Constrained Feature Models}
+\renewcommand{\date}{\today}
+\newcommand{\isrn}{LIU-IDA/LITH-EX-A--14/053--SE}
+\newcommand{\supervisors}{Ahmed Rezine (Linköping University),\\Johan Moe (Ericsson)}
+\newcommand{\examiner}{Kristian Sandahl (Linköping University)}
+
+\hypersetup{
+	pdfauthor=\author
+	pdftitle=\title
+	pdfsubject={Master's Thesis}
+}
+
+%tableofcontents
+\newcommand{\nocontentsline}[3]{}
+\newcommand{\tocless}[2]{\bgroup\let\addcontentsline=\nocontentsline#1{#2}\egroup}
+\addtocontents{toc}{\protect\thispagestyle{empty}}
+\setcounter{tocdepth}{2}
+\addto\captionsenglish{
+  \renewcommand{\contentsname}
+    {Table of Contents}
+}
+
+\begin{document}
+\include{chapters/front}
+\include{chapters/title}
+
+
+\input{chapters/abstract}
+
+
+
+\input{chapters/acknowledgements}
+
+\tableofcontents
+\thispagestyle{empty}
+\newpage
+
+\listoffigures
+\thispagestyle{empty}
+\newpage
+
+\listoftables
+\thispagestyle{empty}
+\newpage
+
+\lstlistoflistings
+\thispagestyle{empty}
+\newpage
+
+
+\setcounter{page}{1}
+\pagenumbering{arabic}
+\pagestyle{plain}
+
+%[START] CONTENT
+\input{chapters/introduction}
+\input{chapters/models}
+\input{chapters/constraints}
+
+%OLD
+\input{chapters/methodology}
+\input{chapters/implementation} 
+\input{chapters/evaluation}
+\input{chapters/discussion}
+\input{chapters/conclusion}
+%[START] CONTENT
+
+%References
+\cleardoublepage\phantomsection
+\addcontentsline{toc}{chapter}{References}
+\bibliographystyle{plain}
+\bibliography{bibtex/thesis}
+
+\begin{appendices}
+ \chapter{Figures}\label{app:figures}
+
+\begin{figure}[h]
+
+ \begin{tikzpicture}[node distance=2cm,scale=0.8, every node/.style={transform shape}]
+
+ \node (Handler) [classclass, align=center, text justified]
+ 	{
+ 		\textbf{Handler.py}
+ 		\nodepart{second}nextHandler
+ 		\nodepart{third} \_\_init\_\_(self)\\ 		\_\_add\_\_(self, newHandler) \\
+ 		handle(self, data)\\ 
+ 		go(self, data)
+ 	};
+ \node (StructureHandler) [classclass, align=center, below=2cm of Handler]
+ 	{
+ 		\textbf{StructureHandler.py}
+ 	};
+ 	
+ \node (DependencyHandler) [left=0.5cm of StructureHandler, classclass, align=center, text justified]
+  	{	
+  		\textbf{DependencyHandler.py}
+  	};	
+  	
+ \node (schematronparser) [below=0.5cm of StructureHandler,
+ classclass, align=center, text justified]
+ 	{
+ 		 \textbf{SchematronParserHandler.py}
+ 	};
+ 	
+ \node (XMLParserHandler) [left=0.5cm of DependencyHandler, classclass, align=center, text justified]
+ 	{
+		\textbf{XMLParserHandler.py}
+ 	};
+ 	
+ \node (AnnotationParserHandler) [above =2cm of XMLParserHandler, classclass, align=center, text justified]
+ 	{
+ 		\textbf{AnnotationParserHandler.py}
+ 	};
+  		
+  	
+ \node (TCGenerationHandler) [classclass, align=center, right=0.5cm of StructureHandler]
+ 	{
+   		\textbf{TestCaseGenerationHandler.py}
+   	};
+   	
+
+ \node (writer) [classclass, align=center, above=2cm of TCGenerationHandler] 
+ 	{
+ 		\textbf{TestCaseWriter.py}
+  	};
+   	
+ 	
+ %\node (main) [classclass, align=center, below=1cm of StructureHandler]
+ %	{ 
+% 		\textbf{coteca.py}
+ %	};
+ 	
+ \draw[inherits] (XMLParserHandler) |- (-3,-1.8) -| (Handler);	
+ \draw[inherits] (AnnotationParserHandler.south) |- (-3,-1.6) -|  (Handler);
+ \draw[inherits] (DependencyHandler) |- (-3,-2) -| (Handler);
+ \draw[inherits] (StructureHandler) |- (-3,-2) -| (Handler);
+ \draw[inherits] (TCGenerationHandler) |- (-3,-1.8) -| (Handler);
+ \draw[inherits] (writer.south) |- (-3,-1.6) -| (Handler.south);
+
+ \draw[inherits] (schematronparser.north) -| (0,-5) -| (-1.8,-2.2) |- (-1.8,-2.2) -| (Handler.south);
+ 
+ %\draw (main.north) -| (XMLParserHandler);
+ %\draw (main.north) -| (DependencyHandler);
+ %\draw (main.north) -| (StructureHandler);
+ %\draw (main.north) -| (TCGenerationHandler);
+ 
+ \draw (Handler.north) -| (0,2) -- (2.5,2) |- (Handler.east);
+ \draw (writer.east) -| (7,-2) |- (TCGenerationHandler.east);
+ \draw (schematronparser.west) -| (-3.7,-6) |- (DependencyHandler.south);
+ 	
+ \end{tikzpicture}
+ \caption{Architecture of \texttt{coteca}.}
+ \label{fig:architecture}
+
+ \end{figure}
+ 
+ 
+ \chapter{SMT Encoding Example}\label{app:smtOutput}
+ 
+ \section{Input Script}
+ \begin{verbatim}
+ (declare-datatypes () ((Attribute null
+ 	                    (mk_Attribute
+ 	                     (value Int)
+ 	                    )
+ 	                  ))
+ )
+ 
+ ;VlanPort
+ (declare-datatypes () ((VlanPort
+                         (mk_VlanPort
+                          (vlanPortId Attribute)
+                         )
+                       ))
+ )
+ 
+ ;Router
+ (declare-datatypes () ((Router 
+                         (mk_Router
+                          (routerId Attribute)
+                          (ttl Attribute)
+                         )
+                       ))
+ )
+ 
+ ;InterfaceIPv4 
+ (declare-datatypes () ((InterfaceIPv4
+                         (mk_InterfaceIPv4
+                          (interfaceIPv4Id Attribute)
+                          (encapsulation Attribute)
+                          (loopback Attribute)
+                          (bfdStaticRoutes Attribute)
+                         )
+                       ))
+ )
+ 
+ ;INSTANCES
+ (declare-const VlanPort___1 VlanPort)
+ (assert (= (vlanPortId VlanPort___1) 
+            (mk_Attribute 1)
+         )
+ )
+ 
+ (declare-const VlanPort___2 VlanPort)
+ (assert (= (vlanPortId VlanPort___2) 
+            (mk_Attribute 2)
+         )
+ )
+ 
+ (declare-const Router___3 Router)
+ (assert (= (routerId Router___3)
+            (mk_Attribute 3)
+         )
+ )
+ (assert (and (<= 1 (value (ttl Router___3)))
+              (<= (value (ttl Router___3)) 255)
+         )
+ )
+         
+ (declare-const InterfaceIPv4___4 (InterfaceIPv4))
+ (assert (= (interfaceIPv4Id InterfaceIPv4___4) 
+            (mk_Attribute 4)
+         )
+ )
+ (assert (or (= (encapsulation InterfaceIPv4___4) null)
+             (and (<= 1 
+                      (value (encapsulation InterfaceIPv4___4))
+                  )
+                  (<= (value (encapsulation InterfaceIPv4___4))
+                      2)
+             )
+         )
+ )
+ (assert (or (= (loopback InterfaceIPv4___4) null)
+             (= (loopback InterfaceIPv4___4) 
+                (mk_Attribute 0)
+             )
+             (= (loopback InterfaceIPv4___4) 
+                (mk_Attribute 1)
+             )
+         )
+ )
+ (assert (or (= (bfdStaticRoutes InterfaceIPv4___4) 
+                (mk_Attribute 0)
+             )
+             (= (bfdStaticRoutes InterfaceIPv4___4) 
+                (mk_Attribute 1)
+             )
+         )
+ )
+ 
+ 
+ (declare-const InterfaceIPv4___5 (InterfaceIPv4))
+ (assert (= (interfaceIPv4Id InterfaceIPv4___5) 
+            (mk_Attribute 5)
+         )
+ )
+ (assert (or (= (encapsulation InterfaceIPv4___5) null)
+             (and (<= 1 
+                      (value (encapsulation InterfaceIPv4___5))
+                  )
+                  (<= (value (encapsulation InterfaceIPv4___5))
+                      2)
+             )
+         )
+ )
+ (assert (or (= (loopback InterfaceIPv4___5) null)
+             (= (loopback InterfaceIPv4___5) 
+                (mk_Attribute 0)
+             )
+             (= (loopback InterfaceIPv4___5) 
+                (mk_Attribute 1)
+             )
+         )
+ )
+ (assert (or (= (bfdStaticRoutes InterfaceIPv4___5) 
+                (mk_Attribute 0)
+             )
+             (= (bfdStaticRoutes InterfaceIPv4___5) 
+                (mk_Attribute 1)
+             )
+         )
+ )
+ 
+ ;DEPENDENCIES
+ (assert (<= (+ (ite (= (loopback InterfaceIPv4___4) null) 0 1)
+                (ite (= (loopback InterfaceIPv4___5) null) 0 1)
+             )
+         64))
+ (assert (= (value (ttl Router___3)) 64))
+ (assert (distinct (encapsulation InterfaceIPv4___4)
+                   (encapsulation InterfaceIPv4___5)
+         ))
+         
+ (assert (or (and (not (= (encapsulation InterfaceIPv4___4) null))
+                  (not (= (loopback InterfaceIPv4___4) (mk_Attribute 1)))
+             )
+             (and (= (loopback InterfaceIPv4___4) (mk_Attribute 1))
+                  (not (= (encapsulation InterfaceIPv4___4) null))
+             )
+          )
+ )
+ (assert (not (and (= (loopback InterfaceIPv4___4) (mk_Attribute 1))
+                   (= (bfdStaticRoutes InterfaceIPv4___4) 
+                      (mk_Attribute 1))
+              )
+         )
+ )
+ 
+ (assert (or (and (not (= (encapsulation InterfaceIPv4___5) null))
+                  (not (= (loopback InterfaceIPv4___5) (mk_Attribute 1)))
+             )
+             (and (= (loopback InterfaceIPv4___5) (mk_Attribute 1))
+                  (not (= (encapsulation InterfaceIPv4___5) null))
+             )
+          )
+ )
+ (assert (not (and (= (loopback InterfaceIPv4___5) (mk_Attribute 1))
+                   (= (bfdStaticRoutes InterfaceIPv4___5) 
+                      (mk_Attribute 1))
+              )
+         )
+ )
+ 
+ (check-sat)
+ (get-model)
+ \end{verbatim}
+ 
+ \section{SMT solver plain output}
+ 
+ \begin{verbatim}
+ sat
+ (model 
+   (define-fun InterfaceIPv4___4 () InterfaceIPv4
+     (mk_InterfaceIPv4 (mk_Attribute 4)
+                   (mk_Attribute 1)
+                   (mk_Attribute 1)
+                   (mk_Attribute 0)))
+   (define-fun VlanPort___1 () VlanPort
+     (mk_VlanPort (mk_Attribute 1)))
+   (define-fun VlanPort___2 () VlanPort
+     (mk_VlanPort (mk_Attribute 2)))
+   (define-fun Router___3 () Router
+     (mk_Router (mk_Attribute 3) null))
+   (define-fun InterfaceIPv4___5 () InterfaceIPv4
+     (mk_InterfaceIPv4 (mk_Attribute 5)
+                   (mk_Attribute 2)
+                   (mk_Attribute 1)
+                   (mk_Attribute 0)))
+ \end{verbatim}
+ 
+ 
+ 
+ \chapter{XPath To SMT-LIB Mappings}\label{app:smt-map}
+
+ \begin{center}
+ \begin{longtable}{|l|l|}
+ \hline
+ \textbf{Expression} & \textbf{SMT-LIB} \\
+ \hline
+ $\neg a$ & \verb|(not a)| \\ \hline
+ $a \vee b$ & \verb|(or a b)|\\ \hline
+ $a \wedge b$ & \verb|(and a b)| \\ \hline
+ $a \otimes b$ & \verb|(xor a b)| \\ \hline
+ $a < b$ & \verb|(< a b)|\\ \hline
+ $a \leq b$ & \verb|(<= a b)|\\ \hline
+ $a > b$ & \verb|(> a b)| \\ \hline
+ $a \geq b$ & \verb|(>= a b)| \\ \hline
+ $a = b$ & \verb|(= a b)| \\ \hline
+ $a \neq b$ & \verb|(not (= a b))| \\ \hline
+ $a + b$ & \verb|(+ a b)|\\ \hline
+ $a - b$ & \verb|(- a b)|\\ \hline
+ $a * b$ & \verb|(* a b)|\\ \hline
+ $a \div b$ & \verb|(div a b)| \\ \hline
+ $a \mod b$ & \verb|(mod a b)| \\ \hline
+ \verb|../A/B/@c| (path)& Will be resolved by Python. \\ \hline
+ 
+ \verb|A[@c = 1]| (filter) &  Depending on the filter,\\
+ & operators and functions will be \\
+ & expressed in SMT-LIB, if possible. \\ \hline
+ 
+ \verb|count(a)| & Will be resolved by Python and \\
+ & inserted as an integer. \\ \hline
+ 
+ \verb|are-distinct-values(a, b, c)| 
+ & \verb|(distinct (value a)|\\
+ & \verb|          (value b)|\\ & \verb|          (value c))| \\ \hline
+ 
+ \verb|matches("*.txt", a)| & see Section~\ref{sec:mconstraints} \\ \hline
+ 
+ \verb|contains("txt", a)| & see Section~\ref{sec:mconstraints} \\ \hline
+ 
+ \verb|exists(a)| and \verb|a| is a \verb|moRef| & \verb|(= a x)| for each \verb|x| to be \\
+ & the key of the pointing instance of \verb|a|.\\ \hline
+ 
+ \verb|exists(a)| and \verb|a| is not a \verb|moRef| &
+ \verb|(not (= a null))| \\ \hline
+
+ \verb|string-length(a)| &  Will be resolved by Python. \\ \hline
+ %\verb|every $x in a satisfies b| & ...
+ \end{longtable}
+ \end{center}
+ 
+ \chapter{Code Listings}\label{app:code}
+ 
+ \section*{The abstract \texttt{Handler} class}
+ \begin{lstlisting}[label={lst:go},style=mypython]
+ ## The Handler is the baseclass of the chain-elements
+ # in the chain of responsibility pattern.
+ class Handler(object):
+ 	## Constructor initializes the nextHandler to None
+ 	def __init__(self):
+ 		self.__nextHandler=None
+ 		
+ 	## Overloaded list-append operator allows to form 
+ 	#  a chain (list) by linking together multiple handlers.
+ 	def __add__(self, newHandler):
+ 		if not isinstance(newHandler, Handler):
+ 			raise TypeError("Handler.__add__() expects
+ 			      Handler!")
+ 		if self.__nextHandler:
+ 			self.__nextHandler+newHandler
+ 		else:
+ 			self.__nextHandler=newHandler
+ 		return self
+ 		
+ 	## Should be called at the first chain-element.
+ 	#  Performs the local handle of the data-object, 
+ 	#  before passing it to the next handler.
+ 	#  Returns the changed object
+ 	def go(args, data):
+ 		ret=self.handle(data)
+ 		if self.__nextHandler:
+ 			self.__nextHandler.go(ret)
+ 		return ret
+ 		
+ 	## Default implementation of the handler.
+ 	#  Will be overridden by the different
+ 	#  subclasses.
+ 	def handle(self, data):
+ 		return data
+ \end{lstlisting}
+ 
+\chapter{Evaluation Results}\label{app:results}
+
+\begin{table}
+\begin{longtable}{|r|r|r|r|r|r|r|}\hline
+\textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} & \textbf{F} & \textbf{G}
+ \csvreader[separator=semicolon,head to column names]{eval/t1m1.csv}{} %
+ {\\\hline \num & \inst & \code & \codepertc & \smtsolve & \avgsolve & \result} %
+   \\\hline %
+
+\end{longtable}
+\caption[Evaluation Results of $\mathbf{T1_{M1}}$]{Evaluation Results for test-case $\mathbf{T1_{M1}}$, where \textbf{A} is the number of the test-case, \textbf{B} is the number of instances, \textbf{C} is the time for code preparation (in seconds), \textbf{D} is the average code preparation time per instance (in milliseconds), \textbf{E} is the SMT solving time (in seconds), \textbf{F} is the average SMT solving time per instance (in seconds) and \textbf{G} is the result of the SMT solver.
+}\label{tab:eval-t1-m1}
+\end{table}
+
+\begin{table}
+\centering
+
+\begin{tabular}{|r|r|r|r|r|r|r|}\hline
+\textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E} & \textbf{F} & \textbf{G}
+ \csvreader[separator=semicolon,head to column names]{eval/t2m2.csv}{} %
+ {\\\hline \num & \inst & \code & \codepertc & \smtsolve & \avgsolve & \result} %
+   \\\hline %
+
+\end{tabular}
+\caption[Evaluation Results of $\mathbf{T2_{M2}}$]{Evaluation Results for test-case $\mathbf{T2_{M2}}$, where \textbf{A} is the number of the test-case, \textbf{B} is the number of instances, \textbf{C} is the time for code preparation (in seconds), \textbf{D} is the average code preparation time per instance (in milliseconds), \textbf{E} is the SMT solving time (in seconds), \textbf{F} is the average SMT solving time per instance (in milliseconds) and \textbf{G} is the result.
+}\label{tab:eval-t2-m2}
+\end{table}
+ 
+\end{appendices}
+
+\include{chapters/copyright}
+
+\end{document}

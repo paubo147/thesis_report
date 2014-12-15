@@ -1,0 +1,8 @@
+<schema xmlns="http://purl.oclc.org/dsdl/schematron">
+ <pattern>
+  <rule>
+   <assert test='(@encapsulation and not(@loopback)) or (@loopback and not(@encapsulation))'><value-of select="."/>...</assert>
+   <assert test='not(@loopback and (@bfdStaticRoutes eq 1))'><value-of select="."/>...</assert>
+  </rule>
+ </pattern>
+</schema>

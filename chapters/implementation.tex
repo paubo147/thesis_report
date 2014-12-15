@@ -1,0 +1,290 @@
+\chapter{Implementation}\label{chap:practice}
+
+This chapter will discuss the practical work based on Chapter~\ref{chap:methodology} and will further describe technical details.
+
+\section{Goal and Approach}\label{sec:goal-approach}
+
+The goal of the tool is, to generate positive test-cases, i.e., configurations which should always pass while configuring the underlying system. The name of the tool is \emph{coteca} (\underline{co}nfiguration \underline{te}st-\underline{ca}se).
+
+These test-cases are based on the theoretical model explained in Chapter~\ref{chap:ecim}. Following the approach of the previous chapter, we can arrange the tool in way, that the different stages in the generation process are each encapsulated in various modules or classes.
+
+First, the different parts of this comprehensive work were identified, starting from the input format to the desired output format. 
+
+To cover all needs to generate tests, the model specification sometimes lacks of further information, but also simplified assumptions are needed to achieve the goal properly.
+Examples for these assumptions and missing model details are regular expressions, missing limits of cardinalities, the path to the SMT solver and other user-defined sizes.
+These facts have to be provided by the user. To have the possibility to save these annotations, we did not require them to be passed as command line arguments, but to be stored in a so-called \emph{annotation file}, which will be provided as an XML file. It will be explained in Section~\ref{sec:annot}.
+
+
+\section{Work-flow and Architecture}\label{sec:arch}
+
+To describe the work-flow of the final tool, enumerating the different responsibilities is a good practice. After that, these responsibilities will become steps in the work-flow in terms of classes or modules. The final thought goes more into a practical direction and explains the resulting architecture.
+
+The following steps are necessary to generate test-cases:
+
+\begin{enumerate}
+ \item The \textbf{XML-Parser} parses the XML files. Internally calls the parser for the \emph{annotation file} (see Section~\ref{sec:annot}).
+ 
+ \item The \textbf{Dependency-Handler} is responsible for parsing, refining and storing the given dependencies in Schematron (XPath). By refining, we mean already the partial translation into SMT-LIB format. The complete SMT-LIB code for finding a solution for a set of assertions will be completed once we know the structural properties.
+ 
+ \item The \textbf{Structure-Handler} resolves the structural aspects of the model-files, i.e., deals mostly with parent-child relations and the cardinalities, as we have seen in Section~\ref{sec:structure-fm}. The staged configuration will be implemented here.
+ 
+ \item The \textbf{Test Case Generator} prepares 
+ the input file for the SMT solver. For each test-case, one SMT run is performed. It also translates the reported model by the SMT solver into corresponding ECIM configurations.
+ 
+ \item \textbf{Test Case Writer} is needed to write the test cases into a machine-readable format. In our case it is a sequence of configuration-commands which are understandable by the configuration manager.
+\end{enumerate}
+
+Before we explain these modules in context of a general architecture as well as the detailed technical work of each of these steps in the next Section, we will sketch out some general comments:
+\begin{itemize}
+ \item If we are following a classical automated test-case generation process, we would need to include an intermediate step between the SMT aided Test Case Generation (step 4) and the Test Case Writer (step 5), which translates the intermediate format of the test cases into a more general, non-executable format (such as XML), which is then used by the Test Case Writer. Due to time limitations, we decided to implement the specific version only.
+ 
+ \item The reason, to separate the Dependency Handler from the XML Parser has also to do with responsibilities. Further, the results of the Dependency Handler could be used in all the preceding steps, so a thorough knowledge about the domain is needed, which would have been simply too much for the XML Parser. Further, for the sake of an extensible architecture, the dependency handler could handle dependencies in a variety of formats (currently only Schematron).
+\end{itemize}
+
+The previously presented steps are following a logical order and look almost like the stages of a compiler. This order and the separation of responsibilities leads to the use of a \emph{behavioral design pattern}~\cite{design-patterns}, which we will use in our architecture. 
+
+\subsection*{Architecture}
+
+What we need is a hierarchical module-structure as well as a pipeline-fashioned work where each module has its own responsibilities: it simply completes its task on a specific object and passes it to the next element in the ``pipeline''. 
+
+
+The \emph{chain of responsibility} pattern is exactly following our needs: it consists of a set of \emph{processing objects}. Each of the processing objects (or handler) has its own responsibility to handle the \emph{command object}, an object which is passed through the chain. In other words, each processing object handles the parts of a command object it knows about and passes the rest to the next processing object in the chain. 
+
+
+A nice variation of the classical pattern is, that some processing nodes can act as dispatchers, i.e., by branching the chain into a tree and directing the command into a variety of directions. 
+
+In our context, this allows us to implement each step as a chain-element. The command object needs to be generic enough for all steps to produce a desired output. The final architecture looks like the one in Figure~\ref{fig:arch}. For a comprehensive architecture, we refer to Figure~\ref{fig:architecture} in Appendix~\ref{app:figures}. Note that the \verb|go| function in the \verb|Handler| is needed, to mask the administrative code, i.e., calling the \verb|handle| function of the subclass, checking if the next handler is set and if so, calling \verb|go| again. It propagates the call, while providing an independent but uniform implementation of the single responsibility. For a code example of the \verb|go| function we refer to the Implementation Details in Section~\ref{sec:impl}.
+
+
+\begin{figure}
+\begin{tikzpicture}[node distance=2cm]
+\centering
+\node (Handler) [classclass, align=center, text justified]
+	{
+		\footnotesize
+		\textbf{Handler}
+		\nodepart{second}\footnotesize \texttt{nextHandler}
+		\nodepart{third}\footnotesize\texttt{handle(data)}\\ \footnotesize\texttt{go(data)}
+	};
+	
+
+	
+\node (DependencyHandler) [below=2cm of Handler, classclass, align=center, text justified]
+	{	\footnotesize
+		\textbf{DependencyHandler}
+	};
+	
+	
+\node (XMLParserHandler) [left=1cm of DependencyHandler, classclass, align=center, text justified]
+	{	\footnotesize
+		\textbf{XMLParserHandler}
+	};
+	
+\node(silent) [right=1cm of DependencyHandler]
+	{\large ...};
+	
+\draw[inherits] (XMLParserHandler) |- (-3,-2) -| (Handler);	
+\draw[inherits] (DependencyHandler) |- (-3,-2) -| (Handler);
+
+\draw[assoc] (Handler.north) -| (0,1.5) -- (2,1.5) |- (Handler.east);
+	
+\end{tikzpicture}
+\caption{The class hierarchy of the different steps.} \label{fig:arch}
+\end{figure}
+
+The module which constructs and launches the chain will be our main program. Consider Figure~\ref{fig:seq-diag} on page~\pageref{fig:seq-diag} for an example of a sequence diagram containing 3 chain elements. The \verb|main| thread contains a list containing the 3 involved handlers and calls \verb|go| on the first element in this list. Inside \verb|go|, a local function \verb|handle| is called, which changes the arguments before calling again \verb|go| on the next element in the chain with the modified arguments and so on. For details about the implementation, we refer to Section~\ref{sec:impl}.
+
+
+\begin{figure}
+\centering
+\begin{sequencediagram}
+%\tikzstyle{inststyle}+=[rounded corners=3mm]
+\tikzstyle{inststyle}=[rectangle,
+	dashed,
+	rounded corners,
+	draw=green!70,
+	fill=green!20]
+\newthread{m}{main}
+\tikzstyle{inststyle}=[rectangle,
+		draw=blue!70,
+		fill=blue!20,
+		rounded corners]
+\newinst[2]{x}{:Handler1}
+\newinst[1]{d}{:Handler2}
+\newinst[1]{y}{:Handler3}
+
+
+\begin{call}{m}{createChain()}{m}{}
+\end{call}
+
+\begin{call}{m}{go(args)}{x}{}
+ \begin{call}{x}{handle(args)}{x}{return data}
+ \end{call}
+ \begin{call}{x}{go(data)}{d}{}
+  \begin{call}{d}{handle(data)}{d}{return data1}
+  \end{call}
+  \begin{call}{d}{go(data1)}{y}{}
+   \begin{call}{y}{handle(data1)}{y}{return data2}
+   \end{call}
+  \end{call}
+ \end{call} 
+\end{call}
+
+\end{sequencediagram}
+\caption{Schematic sequence diagram.}
+\label{fig:seq-diag}
+\end{figure}
+
+\section{User Annotations}\label{sec:annot}
+
+As we have seen, there are situations where the information taken from the MIM model is not enough to produce suitable test-cases. To provide all the needed information, we require the user to provide an \emph{annotation} file. This file is also in XML-format and provides a way for the user to create test-cases for different scenario, i.e., hardware configurations.
+
+
+Limits for cardinalities are one example of such a missing information. Most of the time, the user knows how many children there are required for a real test-case.
+Another problem arises, if the provided model contains cycles. In some rare scenarios it could be that a cycle inside the parent-child relations is present. To address these problems, the user can refine parent-child relations by, either providing one fixed cardinality to choose a fixed number of children, where 0 excludes the relation or by reducing it.
+
+
+Another example are static parts of the tree. The user might not be interested in testing the whole \verb|mim|-tree, but only fragments of it. Allowing the tool to create only configurations belonging to a sub-tree, the output still needs to contain the upper nodes from the root node (\verb|ManagedElement|) to the subtree. Further, some of the nodes are \verb|systemCreated|, i.e., hard-coded into the system. For those nodes, we need to have fixed values. In other words, the user can specify static parts of the tree, which have to exist To test the desired fragment of a \verb|mim|-tree.
+
+
+\section{Technical Aspects}\label{sec:tech}
+
+We decided to use Python because of the dynamic nature of the language, the big variety of libraries and the good XML Parsing support. It supports object orientation and the decorator feature, which facilitates time measurement. There is also the possibility to call external processes, i.e., in our case the SMT solver.
+
+
+We used the SMT solver z3 from Microsoft\footnote{\url{http://z3.codeplex.com/}}, a high-performance SMT solver which allows SMT-LIB as input language and supports a big variety of theories. Further, the authors are frequently publishing articles about theories, theorem proving and other SMT-related subjects. The solver is currently used for verification and testing purposes of several Microsoft products. It also took place in several SMT competitions and the documentation provides good support to develop applications.
+
+The formerly discussed \emph{chain-of-responsibility} pattern can be implemented using the object-oriented features as well as operator overloading of Python. As denoted before, we have a \verb|go| function, which encapsulates the call to \verb|handle| which is then overridden in the sub-classes. The overloaded \verb|__add__| operator is used to connect a chain element to the existing one. The code of the base class \verb|Handler| can be found in Listing~\ref{lst:go} in the Appendix~\ref{app:code}.
+
+
+The remaining discussion is, which object we are going to pass to the chain: the first choice was, to create an object containing all the needed information from the XML files as well as user annotations. Later, we decided to use a built-in \verb|dict| object, which is internally implemented through hash-tables using open addressing for hash-collisions. Both indicators for fast access times and vanishingly small memory overhead on re-hashing. Thus, we are dealing with simple key-value pairs. This allows a fail-safe implementation.
+
+A nice feature of Python comes with operator overloading. By overloading the \verb|+| operator (\verb|__add__|), we achieve \verb|list|-semantics for our chain. This allows the main program to be more flexible and maintain the single handlers as list elements. An example implementation
+of the main-function can be seen in Listing~\ref{lst:main}. Even the part of the program, which handles the command line argument from the user is a handler, where the arguments object is wrapped into a \verb|dict|. This can be seen as the starting point of the overall procedure. After the construction of the chain, \verb|go| is called on the first element, which internally behaves as you can see in Listing~\ref{lst:go}.
+
+\begin{lstlisting}[caption={The main program.}, label={lst:main},float,style=mypython]
+def __main__(args):
+	h=ArgumentHandler()
+	h+=XMLParserHandler()
+	h+=DependencyHandler()
+	h+=StructureHandler()
+	h+=TestCaseGenerationHandler() #TestCaseWriter is called on each test-case internally
+	h+=StatisticsHandler() #Used to gather several statistics
+	
+	h.go({"args":args})
+	
+	return 0
+
+\end{lstlisting}
+
+
+
+
+\section{Implementation Details}\label{sec:impl}
+
+We will now have a look at specific details of the implementation.
+The command line usage of the tool is:
+\begin{verbatim}
+coteca.py [-h] [-s] annotations xml-files
+\end{verbatim}
+
+\begin{description}
+ \item[\texttt{-h}] is an optional argument and used to print the help.
+ \item[\texttt{-s}] is an optional argument to simulate the creation. This is used to verify for completeness, i.e., it checks if the given model-files are not lacking in any relations, data-types, or classes.
+ \item[\texttt{annotations}] is the location of the annotation-file.
+ \item[\texttt{xml-files}] are the provided XML files containing the MIM including all data-types, classes etc.
+\end{description}
+
+Besides these arguments, a log-file can be specified where information about the test-case creation run is collected. 
+
+The different Python modules from the chain are explained in the sequel, where most of them contain one or two python classes. Other Python modules not explained here are utilities, i.e., commonly used functions and exceptions, such as translation functions between the output of the SMT solver and the input language of the configuration manager.
+
+\subsection*{XML Parser}
+
+As the name already suggest, the XML Parser parses the XML files containing the ECIM models. It uses the \verb|lxml| package of Python. The procedure works as follows:
+\begin{enumerate}
+ \item Put each XML file into a list of parsed files.
+
+ \item Parse annotation file by the help of \verb|AnnotationParserHandler|. This is the starting point of the \verb|dict| object. Several previously discussed information, such as the SMT solver command as well as command line arguments and its input file name, string-list locations, the static tree and the user defined cardinalities are stored after this step.
+
+ \item Parse classes, attributes and their data types. This also involves the properties on classes (\verb|isSystemCreated|) and on attributes. Also the dependencies, i.e., the input of the SMT solver in a future step are stored in plain-text. The data-types are parsed as much as possible, but can only be completed at the next step. 
+ 
+ \item Resolve missing data-types. This step is needed, because in the previous step, we could have encountered a derived data-type whose location was already processed. 
+ 
+ \item Store relationships, i.e., parent-child relations as well as bi-directional associations. This step also creates the tree from the parent-child relations, which are available as pairs in the XML files. Afterwards, the JSON module of python is used to find any circular references. In that case an Exception is thrown.
+ 
+ \item Insert annotated classes. The static classes, which can be found in the annotation file are inserted directly into the \verb|dict| object. This step has to be done at the end, since we need to ensure, that the tree is fully created. 
+\end{enumerate}
+
+The parser raises an Exception if a class or a data-type is missing. The classes are uniquely accessible by their containing \verb|mim| as well as the \verb|name|. The name of a class is therefore \texttt{<mim-name>\_\_<class-name>}. This assures that we do not have any name-clashes, if one class with the same name appears in different \verb|mim|s.
+
+\subsection*{Dependency Handler}
+
+As mentioned before, the \verb|DependencyHandler| is executed directly after the Parser to interpret the XPath expressions and store them into the \verb|dict| object. 
+It uses the \verb|SchematronParserHandler| as well as a utility-module called \verb|DependencyRefinement| to translate the parsed XPath expressions into a format, which is close to the SMT-LIB format.
+
+
+The \verb|SchematronParser| uses the \verb|ply| module, a Python implementation for \verb|lex| and \verb|yacc|. The error-handling is basic, but indicates the line number as well as the position inside the input in case of an error in the XPath scripts. The result is again passed to the class on the \verb|dict| object, by replacing the previously stored dependencies in plain-text.
+
+
+Since the \verb|SchematronParser| is unaware of the different classes, and knows them only by name, the \verb|DependencyRefinement| has knowledge about the previously parsed classes, i.e., it can navigate through the tree, when hitting a \verb|..| or a \verb|@<attribute-name>|. 
+
+This module uses a so-called \emph{context} for the current class, the current attribute and the current member (for structs). This is needed, because when a path expression is encountered, the current class is set to the one where the dependency was originally found. Since at this point, the \verb|DependencyRefinement| module is unaware of instances, we simply navigate through the path with the abstract classes. The real instances are then resolved at a later point.
+
+For the different XPath functions the module treats them differently, either by returning a \emph{masked} part
+\begin{itemize}
+ \item \texttt{\#<class>.COUNT\#}
+ \item \texttt{\#<class>.<attribute>.COUNT\#}
+\end{itemize}
+or by setting a so-called \emph{validation} on the class or attribute itself. Such a validation indicates an outsourced operation, such as \verb|match| for regular expressions or \verb|contains|. 
+
+\subsection*{StructureHandler}
+The \verb|StructureHandler| has the task to resolve the \emph{parent-child paths} from the tree in form of a Python-\verb|dict| which is a trivial task involving a recursive function. The result is the set of distinct paths from the tree.
+
+The next step is, to create abstract test-cases, i.e., only containing topological information. The final test-cases are created later to avoid memory-overhead. An abstract test-case only defines the set of classes for each test-case. To accomplish this, every single path is inserted as an abstract test-case. 
+
+Then it creates the combination of all paths and inserts them as abstract test-cases.
+
+A further important task is, to decorate instances with useful information for the next step, the actual \emph{test-case generation phase}. Such information are the previously gathered validations both on classes and on attributes from the \verb|DependencyRefinement| module, the level in the current tree of the test-case as well as partitions and translation-functions to translate SMT results back to real values.
+
+Now we can recursively \emph{blow up} the previously created abstract test-cases. The recursion is not a performance problem, since the maximal depth is the maximal depth of the tree. This is done by using the staged configuration approach as described in Section~\ref{sec:structure}. Instead of the \emph{skip-size}, we use a globally defined \emph{skip-factor}. This factor is given by the annotation file and is a percent value of how many cardinality-values are excluded from the generation process. 
+
+
+\subsection*{TestCaseGenerationHandler}
+
+This module is responsible for the execution of the final considerations in the last chapter (Section~\ref{sec:final}), namely:
+\begin{enumerate}
+ \item Running the $t$-wise algorithm. This is done by the iterator implemented in the Python module named \emph{allpairs}\footnote{\url{https://pypi.python.org/pypi/AllPairs/2.0.1}}. Other than the name suggests, it is a general version which supports different values for $t$. If we run out of values for a specific $t$, because the $t$-wise array is too small for the number of our instances, we simply reset the iterator and start over with $t+1$.
+ 
+ \item Distributing the key attributes. An internal mapping between the test-case number and the actual key number is done in another small \verb|dict|.
+ 
+ \item Prepare the SMT code. To accomplish this, a utility module \verb|SMTCodeGen| is used, which is aware of the exact syntax of the SMT-LIB input language.
+ 
+ \item Write the prepared SMT-LIB code into a file and run the SMT code. 
+ 
+ \item Check if the result was satisfiable. If it is the case, then parse and translate the output model of the SMT solver using the SMT-LIB parser into the adequate format of the test-cases and call the \verb|TestCaseWriter|. Again, this parser uses \verb|ply|. If it is unsatisfiable, it simply writes the SMT code into a specific file. This mechanism is used to understand the generated code of the tool and examine it further. The same mechanism is used, if the SMT solver returns something else than \verb|SAT|, \verb|UNSAT| or \verb|TIMEOUT| in case a timeout is given in the annotation file.
+\end{enumerate}
+
+Before calling the SMT solver, the input file consists of the SMT encoding as seen in Section~\ref{sec:example}:
+\begin{itemize}
+ \item The declarative datatype \verb|attribute|, which allows values to be \verb|null|.
+ 
+ \item For each class, a declarative data-type with its attributes.
+ 
+ \item The instances of each class as a constant. In SMT terms this is a function without parameters. 
+ 
+ \item Assertions regarding the instances, i.e., attribute ranges, fixed key values and distinctive bi-directional associations. It also sets \verb|moRef| attributes to null, if the client is missing in the set of classes.
+ 
+ \item Dependencies are inserted as assertions.
+ 
+ \item Trailing instructions for the SMT solver. This instructs the SMT solver to search for satisfiability and retrieve a model. 
+\end{itemize}
+
+This file is passed to the SMT solver together with the user-defined parameters for the SMT solver, such as time-out from the user annotations.
+
+As mentioned earlier, the next module, namely the \verb|TestCaseWriter| is called after \emph{every} successful SMT run. This allows the user to interrupt the overall test-case generation process at anytime and still retrieving the currently generated test-cases.
+
+
+\subsection*{TestCaseWriter}
+
+Gathers the test-cases in machine-readable code from the \verb|dict| object and transforms them into a sequence of configuration commands. This code is then printed to the screen, written to a file or both. These information are also coming from the annotation file and are stored inside the \verb|dict| object. 

@@ -1,0 +1,62 @@
+\chapter{Discussion}\label{chap:discussion}
+
+We will now discuss the results of the evaluation in Chapter~\ref{chap:evaluation} and also general aspects of the thesis work.\\
+
+In general, we can observe, that a SMT solver can be useful to find coherent test-cases. We have seen that the transformation of constraints (in our case XPath) is rather crucial, but not a performance over-head. The real performance-issue is a high upper bound of the cardinalities. We used the fragment of the biggest value, i.e., 4096. Together with the structural properties of the resulting test-cases this forms a challenging problem.\\
+
+The performance issues of the SMT solver for test-cases with a high amount of instances can have many reasons. Besides the theoretical considerations, which we concluded in the previous chapter, the use of a different encoding could be considered. 
+
+
+
+
+\section{SMT Encodings}\label{sec:encoding}
+
+As denoted in Section~\ref{sec:science}, there are more theories one could consider when modeling this problem. We only considered 3 theories, namely algebraic data-types, uninterpreted function symbols and linear arithmetics. However, one could think about using the array theory or bit-vectors to represent various aspects of the problem description. Since the theory of bit-vectors uses bit-blasting which is directly mapped to the SAT solver, the complexity remains the same, but current achievements developed strong heuristics to approach good running times.\\ 
+
+
+There is even the possibility to engineer own theories~\cite{theroies-z3} in z3 and integrate the theory into the solver. This theory could be a direct mapping for the problem description. z3 offers a variety of APIs in various languages to have programming support for this achievement. However, a deep theoretical understanding of various facets as well as verification would be needed to engineer a theory. Implementing such a solution would change the architecture of the tool tremendously, because of the strong coupling between solver and the tool. Since we spent most of the time in designing the tool and understanding the context, we omitted this feature. An idea how engineering such a theory could look like is given by Bj{\o}rner et. al.~\cite{theroies-z3}.
+
+
+
+\section{Evaluation Discussion}\label{sec:eval-discussion}
+
+As we have seen, the performance of using SMT solving highly depends on the number of instances per test-case. To understand where the SMT solver starts to time-out one could further investigate the timeout-limit in Table~\ref{tab:results} and discuss different encodings further. However, after spatial tests, we found out, that the number of instances is not the crucial factor which leads to an explosion in the execution times. We believe that the specific structural layout of a test-case is the reason for the SMT solver to time out or not. \\
+
+Another important aspect to mention is the environment. These tests were executed in a normal Laptop PC (HP EliteBook 2.3 Ghz with 8GM Main Memory) within a virtual machine. It has to be assumed that several performance measures are tremendously better, if run on an appropriate setup. The virtual machine was equipped with 3.5 GB main memory and the used operating system was Debian 7.5 64-bit. 
+
+\section{Impact}\label{sec:impact}
+
+The impact of the presented tool can vary. On one hand it does show how to produce configurations based on the dependencies on a practical level. On the other hand, it can be seen that this approach it is not mature enough to be used in a software testing environment. The reason for that is the missing interaction with the user defined objectives. Thus, the tool does produce test-cases, but rather explores the structure in a certain way which might not be conform with the user-desired semantics. However, the architecture of the tool makes it extensible to be extended with this feature. Including this feature would imply that we could improve the reliability of both the configuration manager as well as other testing activities. As a result, we would increase the reliability of communication systems (in the context of Ericsson AB). Reliable communication has many benefits in terms of sustainability, society and environment. It improves the possibility to share knowledge, to prevent from disasters and to implement changes necessary for a sustainable society.
+
+
+\section{Future Work}
+
+There are several technical aspects when talking about future work both in terms of the tool \verb|coteca| as well as scientific considerations:
+\begin{itemize}
+ \item \emph{A deeper analysis of the model.} The development of several metrics to distinguish models and achieve good heuristics could improve the overall generation process. This would also include another subcommand to create a summary of the model including various analyses to have a first impression of the model.
+ 
+ \item \emph{Support for more MIM data-types.} The current implementation accepts only the most important data-types. However, sometimes the models also contain sequences or sequences of structs. On the other hand, this would imply to find a suitable theory in the SMT domain, which is not trivial. Currently, z3 supports the notion of lists, but only in a pure algebraic fashion, i.e., no notion about the length or membership-relation is known. In other words, the list concept is not a theory, but rather an encoding of another theory, namely uninterpreted functions.
+ 
+ \item \emph{String and regular expression support.} Currently, the user has to provide lists for specifically important string attributes. There are solutions to explore regular expressions. HAMPI~\cite{hampi}, Kaluza (which is build upon Kudzu~\cite{kudzu}) or Rex~\cite{rex} are tools which allow to define string constraints and search for solutions. All of them are built upon a SMT solver and use other formalisms such as automata theory to explore and find instances. Another approach to this, would be the development of a theory upon the SMT solver and search for valid strings. However, this would imply the development of a suitable string-theory and also, to develop a logic. String logics and string decision procedures are hot topics of current research.
+ 
+ \item \emph{Performance optimizations.} The tool certainly needs some performance optimizations. Even though a profiler was used to locate performance overheads, further algorithmic optimizations have to be considered. Also in terms of constraint transformation, some performance could be improved by shifting parts of the simplification work from SMT to the Python modules. The used memory is generally under control, but could be further improved by removing redundant data. This could be done with a data-flow analyzer.
+ 
+ \item \emph{Concurrency.} This could be an important performance gain. No concurrency at all is considered at the moment. However, several functions could run in parallel. For example the \texttt{DependencyHandler} and the \texttt{StructuralHandler}. As long as the structure resolving does not depend on the constraints, they can be run in parallel.
+ 
+ \item \emph{Structure resolving.} The current work of the \texttt{StructureHandler} is a brute-force algorithm which explores the range of a cardinality by a given user input. Grieskamp et. al.~\cite{path-interaction-coverage} present a way to combine interaction coverage and path coverage to explore most paths of parameter combinations. The overall topic of \emph{combinatorial interaction testing} is NP-hard, but could be mapped to our scenario. Another idea is the treatment of a structure as a grammar and apply grammar derivation algorithms to it~\cite{fm-grammar-prop, grammar-based-tc-generation-fm}. These algorithms could then be changed, such that they satisfy a certain \emph{derivation coverage} or other user-defined criterion.
+ 
+ \item \emph{Normalization.} Similar to relational data-bases, normalization of feature models is the goal to achieve uniqueness in representation and structure. Van Deursen et. al.~\cite{fm-normalization} apply various normalization steps on a \emph{feature diagram algebra}. These normalization steps are applied on traditional feature diagrams, but they could be extended to capture also cardinality-based feature models. The result of such a normalization would imply an easier encoding and thus, could lead to performance gains.
+\end{itemize}
+
+Except for future work from a practical point of view, there are also scientific obstacles to overcome. 
+In general we have to distinguish between two scientific directions:
+\begin{enumerate}
+ \item Problem specific development of solutions \emph{involving} a SMT solver.
+ 
+ \item Development of decision procedures \emph{for} the SMT solver.
+\end{enumerate}
+
+The first direction is more about how to usefully involve a SMT solver into research, ignoring the internal details and implementation. In our case the focus was lying on the test-case generation for feature models.
+
+One might see that the second direction involves a lot more theoretical knowledge. An example for this are all recent papers about \emph{congruence closure algorithms} or about \emph{string-logics} and many more.
+

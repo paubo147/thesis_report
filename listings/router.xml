@@ -1,0 +1,9 @@
+<schema xmlns="http://purl.oclc.org/dsdl/schematron">
+ <pattern>
+  <rule>
+   <assert test='count(InterfaceIPv4[@loopback]) le 64'><value-of select="."/> Maximum number of InterfaceIPv4 configured as loopback is 64</assert>
+   <assert test='@ttl eq 64'><value-of select="."/> Attribute Time-To-Live (ttl) must be equal to 64</assert>
+   <assert test='are-distinct-values(./InterfaceIPv4/@encapsulation)'><value-of select="."/> The InterfaceIPv4's encapsulation must be unique.</assert>
+  </rule>
+ </pattern>
+</schema>

@@ -1,0 +1,653 @@
+\chapter{Methodology}\label{chap:methodology}
+
+This chapter will lead to the overall process of the test-case generation. It uses the examples from the previous chapters dealing with the ECIM models (Chapter~\ref{chap:ecim}) and the constraints (Chapter~\ref{chap:constraints}). \\
+
+%TODO change next paragraph: very vague
+%TODO 1. constraints. with them it stands or fails. Therefore we stick to SMT solving. In order to 
+Before merging both examples from the previous chapters into the test-case generation, we first will study general considerations as well as the subdivision of the problem. Then the process is illustrated on an example.
+
+\section{General Considerations}\label{sec:general}
+
+The overall purpose is to create instances in an automated fashion. Thus, the best way would be, to generate instances from the model without any user interaction. Since one important requirement is the coherency with respect to the dependencies, we need them in a central position of the overall test-case generation process. 
+In order to do that, we need to perform a translation from the current format of the model (XML) to the SMT readable input format. Since most of the SMT solver use the standardized SMT-LIB input language, we will use it as well. Details about the implementation and the used SMT solver are presented in Chapter~\ref{chap:practice}.\\
+
+No matter how the overall procedure will look like, we need to encode the concepts \emph{class}, \emph{attribute} and \emph{instance}, because all of them can appear in XPath expressions of the dependencies. In the SMT domain, the theory of \emph{uninterpreted (i.e., free) functions} is subject of current research and a lot of effort has been put into improving the decision procedures in terms of efficiency. Thus, we will start by explaining the translation of the formerly mentioned concepts.
+
+\section{SMT Translation of General Concepts}\label{sec:smt-transl-general}
+
+
+\subsection*{Data Types}
+We will start to translate the basic building blocks of an attribute, which are the data-types. We observe that we need a \verb|null| value for each attribute regardless the type. Thus, we need to model a type, which is exclusively \verb|null| or \verb|t|, where the latter one can be of any type. A declarative data-type including \emph{type parameters} is the desired technique. This concept is used in many functional programming languages. The desired data-type (e.g., in Haskell) would look like
+\begin{verbatim}
+data Attribute t = Null | Value t
+\end{verbatim}
+In the SMT-LIB domain, we have the same possibility. We can model this distinct type in a similar fashion. Before showing the exact syntax of this data-type in the SMT-LIB input language, we will examine the different data-types further:
+
+\begin{itemize}
+ \item \verb|boolean| and \verb|int| can be directly mapped to a SMT solver, since \verb|Int| and \verb|Bool| are the most fundamental data-types and supported by almost every SMT solver.
+
+
+ \item \verb|string| can not be directly mapped, because almost all SMT implementations lack of a built-in theory for strings. Current research is focused on this aspect and examine the theory as well as the corresponding decision procedures.\\
+
+ An idea would be, to develop an own theory built upon other theories. However, since the development of such a string-theory is a rather time-consuming and error-prone task, we will leave this task for a future work and will now explain workarounds for \verb|string|s. They can be subdivided into 3 groups:
+ \begin{enumerate}
+  \item \textbf{Key attributes:} Each key attribute of a class is represented as a string. The string can be arbitrarily chosen, with the only requirement, that it remains unique for the same parent-instance. Thus, integers would be appropriate for this purpose. After the SMT-solver runs, we will retrieve the same value, but we then can replace it with actual string values. This can be done with a simple mapping by the help of a hash-table or similar.
+ 
+  \item \textbf{Regular expressions:} Such attributes are further constrained with a \verb|validValues| property and are problematic, because we cannot use the SMT solver to find values for them because of the lack of a theory for strings and especially regular expressions. However, it is also possible to use an external list of strings and then use the indexes of those strings which are valid. Thus, we evaluate the valid strings of the present list in a previous step and yield a list of integers, representing the indexes of those strings which are valid. For example, consider the following list of strings: \begin{verbatim}
+ ['1.2.3.4/32', '5.6.7.8/32', '127.0.0.1/16', 
+ '192.168.0.14/32']
+ \end{verbatim}
+  Applying the regular expression \verb|'.+/32'| to each element in it and returning its corresponding index in the list only if it matches the regular expression, would yield the integer list \verb|[0, 1, 3]|. Thus, for those strings in the list, which fulfill the regular expressions, we gather the index and get a new integer-list containing the indexes of valid values.
+ 
+  \item \textbf{Free strings:} Since the entered value is not constrained, we can generate them randomly or by using the same method as seen before. Further, it is highly unlikely that such an attribute will be further constrained by dependencies. For the case, that such a string-attribute is further constrained with a \verb|length| attribute, one could think about using an integer for it. Otherwise a constant integer value would be enough.
+\end{enumerate}
+
+
+ \item As we have seen in Sections~\ref{subsec:unique} and \ref{subsec:bidir}, the \verb|moRef| data-type is like a pointer to one instance in the overall configuration. Thus, we need to have a globally unique identification for each instance. Since we decided to use integers in the SMT-LIB encoding, we require those integers to be \emph{globally unique}. As a result, \verb|moRef| attributes will also be encoded as integers.
+
+ \item \verb|enum|s have distinct integer-values in its members and thus, they can be used directly as integers in SMT-LIB.\\
+
+
+ \item \verb|struct|s can be seen as an own \verb|class|. Each member follows the rules defined so far.
+\end{itemize}
+
+We have seen that all data-types can be mapped to integers. Also for the \verb|boolean| type this is possible, if we follow the usual transformation of \verb|true| and \verb|false| to 1 and 0.\\
+
+Thus, the algebraic data-type seen before can be translated directly to a corresponding SMT-LIB type
+\begin{verbatim}
+(declare-datatypes () ((Attribute null
+                        (mk_Attribute     
+                         (value Int)
+                        )
+                      ))
+)
+\end{verbatim}
+SMT solvers are aware of algebraic data-types, by using the theory of \emph{uninterpreted functions}. This theory is primarily used to allow the definition of functions. 
+
+For further restrictions of data-types, e.g., \verb|uint8|, we would need to constraint the used data-type further. In a purely object-oriented fashion one would consider to create a sub-type of the \verb|Int| type. However, this is not possible at the moment. \verb|Int| is a sort, i.e., a pre-defined type. With a sort usually comes a whole theory, since the decision procedures need to know the properties of the abstract, newly introduced sort. Thus, creating a \verb|uint8| sort, we would need to repeat the theory of integers and add the allowed range, in this case $-2^7 \ldots 2^7 - 1$. 
+Some SMT solvers allow the definition of new sorts, but they are an arbitrary concept with no notion about relations and allowed operations on them. In those cases, the decision procedure is used to find a universe for this sort. This mechanism is not exactly what we need here. \\
+
+%The used work-around has the humble duty to constraint each attribute of each \emph{instance}. This sounds like a performance overhead. 
+
+\subsection*{Classes}
+To model a whole class of the model, we can use the same approach as before. We use a declarative data-type, but this time without the exclusive \verb|null| value. \\
+
+\begin{figure}[htb]
+\centering
+\begin{tikzpicture}
+\node [attrClass] (vlanport) {
+			\nodepart{one} VlanPort
+			\nodepart[text width=5cm]{two} 
+			\begin{tabular}{lll}
+			vlanPortId & string & key\\
+			vlanId & uint16[1..4096] & mandatory\\
+			isTagged & boolean & \\
+			reservedBy & sequence & readOnly \\
+			& ~moRef & \\
+			\end{tabular}
+			};
+\end{tikzpicture}
+\caption[\textsf{VlanPort} class]{\textsf{VlanPort} as a single class from the example model in Figure~\ref{fig:ecimEx}. We further assume that this class is nested into the \texttt{vlanPort}-MIM (name-space).}
+\label{fig:singleClass}
+\end{figure}
+
+To visualize this, consider Figure~\ref{fig:singleClass}, with the single class \textsf{VlanPort}, this time nested into the MIM (name-space) \verb|vlanPort|. This class will be encoded as follows:
+\begin{verbatim}
+(declare-data-types () ((vlanPort__VlanPort 
+                        (mk_VlanPort 
+                         (vlanPort Attribute)
+                         (vlanId Attribute)
+	                     (isTagged Attribute)
+	                    )
+	                  ))
+)
+\end{verbatim}
+Denote, that we do not need to have the attribute \verb|reservedBy| on the class, since it is a \verb|readOnly| attribute. We can also see, that the MIM name takes part of the overall name to avoid name clashes for the same class name in other MIMs.\\
+
+\subsection*{Instances}
+Finally, the encoding for \emph{instances} is rather simple, by using a constant function. Since each constant needs to be uniquely accessible by the SMT solver, we agreed on the following name schema (assuming that a key 1 was already assigned on this instance):
+
+\begin{verbatim}
+(declare-fun vlanPort__VlanPort___1 () (vlanPort__VlanPort))
+\end{verbatim}
+
+More general, we agreed on the name-schema
+\begin{verbatim}
+<mim-name>__<class-name>___<key>
+\end{verbatim}
+
+
+%TODO here we need to specify exactly how we approach the problem and why!!!
+\section{General Approach}
+
+As mentioned before, we will model the dependencies as well as the used classes and instances with the use of the SMT-LIB input language. Once we have done this, we will run the SMT solver and check for satisfiability. If the overall encoding is satisfiable, we can retrieve an \emph{assignment} from the SMT solver. The assignment contains values for the different attributes of those instances involved in at least one dependency. That means, we get a partial test-case from the SMT solver's assignment. \\
+
+However, there are still 3 remaining problems to solve:
+\begin{enumerate}
+ \item The overall structure of the configuration, i.e., parent-child relations between the classes as well as the number of instances for each instance (cardinalities).
+ \item The encoding of the used constraint language of the dependencies (in our case the used XPath expression-set).
+ \item Attributes, which are not covered by the dependencies (unconstrained attributes).
+\end{enumerate}
+
+
+%TODO something is missing here
+
+\section{Structural Characteristics}\label{sec:structure-fm}
+
+As denoted before, the structural characteristics involve any hierarchical relations as well as cardinalities. We decided to achieve a desirable ``structural coverage''. That means, that the resulting set of configurations are able to explore a desirable amount of selected cardinality-values from the initial cardinality-range. This should involve also combinations between selected cardinality values.\\
+
+Czarnecki et. al.~\cite{card-based-feature-models-formalization} define \emph{staged configuration} as the subsequent \emph{specializations} of a feature model in each stage. This definition can be also found in Section~\ref{sec:models-scientific}. 
+
+They define \emph{specialization steps} and categorize them into 6 groups. We will follow the \emph{feature cloning} approach. 
+
+\begin{definition}{\textbf{Feature Cloning:}}
+Given a cardinality of the form $[a..b]$ with $a < b$. Then we can select a $m \in [a..b]$, and re-define the existing cardinality to $[0..(b-m)]$. 
+\end{definition}
+
+The article does not explain the exact implementation of the cloning step. Moreover the selection of $m$ is not specified further. To achieve a desired ``structural coverage'', we need to select $m$ in a specific manner in each step of the process. We decided to define the staged configuration further and express the stages in a different form. 
+
+\begin{definition}{\textbf{Staged Configuration using Feature Cloning:}}\label{def:staged}
+Let $\mathcal{I} = [a..b]$ be a cardinality, $s$ denote the number of stages (test-cases) and $1 \leq i \leq s$. Further, let $m_{i} \in \mathcal{I}$ be a cardinality of the test-case $i$. Then for all $1 \leq j < j' \leq s$ we require $m_{j'} = m_j + x$. We call $x$ the \emph{skip-size}.
+\end{definition}
+
+$m_i$ is the selected value of the cardinality. It gives the number of cloned instances. $x$ indicates which parts of the cardinality will be skipped. It can be seen, that $x$ could vary for each stage as well as for each cardinality. For our purpose we assume a constant $x$. 
+A possible staged configuration would choose $m_1 = a, m_2 = a + x, m_3 = a + 2x, \ldots, m_s = b$. 
+
+\begin{example}
+Assume a cardinality $[0..10]$. Then the test-cases in Table~\ref{tab:exTc} are selected using a staged configuration with a skip-size. 
+\begin{table}[h]
+\centering
+\begin{tabular}{l|l|l|l|l|l|l|l|l|l|l|l}
+\textbf{skip-size} & $m_1$ & $m_2$ & $m_3$ & $m_4$ & $m_5$ & $m_6$ & $m_7$ & $m_8$ & $m_9$ & $m_{10}$ & $m_{11}$\\ \hline
+1 & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\ \hline
+2 & 0 & 2 & 4 & 6 & 8 & 10 & & & & & \\ \hline
+5 & 0 & 5 & 10 & & & & & & & & \\ \hline
+10 & 0 & 10 & & & & & & & & &
+\end{tabular}
+\caption[Staged Configuration Example]{Example of a staged configuration on the cardinality $[0..10]$ with different skip-sizes.}\label{tab:exTc}
+\end{table} 
+We can observe, that $x = 1$ always leads to $100 \%$ coverage, since we will produce test-cases for all possible cardinality values. $x = (b-a)$ yields the lowest amount of test-cases involving only two border-cases $a$ and $b$.
+\end{example}
+
+We will later see how the implementation of this concept is done.
+
+
+\section{Dependencies}\label{sec:mconstraints}
+
+As explained in Section~\ref{chap:constraints}, we will use a subset of XPath expressions and thus we need to translate them into SMT-LIB assertions. 
+
+We will now recall the syntax of the XPath expressions by explaining them in terms of SMT-LIB assertions and instructions.
+
+\subsubsection*{Integer and String-literals}
+
+Especially integers need a special treatment once they occur in any constraint. The integer can be in the context of a function or of an attribute value. We need to treat both cases according to the context. For example, if we encounter an integer literal in a dependency like
+\begin{verbatim}
+count(a) = 10
+\end{verbatim}
+The right hand side of the equation can be directly taken as an integer. Functions like \verb|count| always return a plain integer. If we have a dependency like 
+\begin{verbatim}
+a = 10
+\end{verbatim}
+we need to model 10 as \verb|(mk_Attribute 10)|, i.e., we need to tell the SMT solver explicitly that we are using 10 in context of an attribute value.
+%TODO string literals
+ 
+\subsubsection*{Operators}
+
+All boolean and arithmetic \emph{operators} are directly mappable to the SMT-LIB input language. The comprehensive list of those mappings can be found in Appendix~\ref{app:smt-map}. Since most of them are available also as operators in the SMT-LIB input language, the transformation is rather straight forward.
+
+\subsubsection*{Functions and Path Expressions}
+
+Most of the functions can be expressed not solely by the SMT-LIB input language, but in combination with a preprocessing step which gathers information to represent them as SMT-LIB assertions.
+
+This applies for example to \verb|count(xpath)|. Here we need to process the argument \verb|xpath| first, before encoding the actual \verb|count|-function. If the argument is a path expression terminating with a class we simply count the occurrences of instances of the class and replace the expression with the corresponding integer, which we know in advance due to the previously performed staged configuration.
+
+If we have a path expression with an attribute \verb|a| at the end, we count the occurrences of attributes which are not \verb|null|, i.e.
+
+\begin{verbatim}
+(+ (ite (= (a <instance1>) null) 0 1)
+   (ite (= (a <instance2>) null) 0 1)
+   ...
+)
+\end{verbatim}
+
+In most of the cases we have a filtered expression as an argument. In this case, we can compute the \verb|count| of it with the following SMT-LIB expression:
+\begin{verbatim}
+(+ (ite <filter applied on instance1> 1 0)
+   (ite <filter applied on instance2> 1 0)
+   ...
+)
+\end{verbatim}
+
+A special role has \verb|matches(pattern, a)|. In this case, since \verb|a| is a string, we require \verb|a| to have an attached string-list. Then, \verb|matches| will be applied in advance, i.e., the indexes of the string-list which match the \verb|pattern| will be the result-set, for which we can create regular assertions. \verb|contains| works in the same way.
+
+\subsubsection*{Path Expressions}
+
+Path expressions represent the structural dependencies of a test-case and thus, cannot be represented in SMT-LIB input language. Gathering values of attributes (\verb|@a|) or instances (\verb|A|) can only be done in advance and have to be represented into the context of the using function or filter.
+
+
+
+
+
+\section{Unconstrained Attributes}\label{sec:nonconstraint}
+
+Unconstrained attributes do not appear in any constraint and thus, the values found by the SMT solver are less interesting for us since it can take any value. One possibility to achieve different values is, \verb|(distinct ...)|, which ensures difference in values of instances and also attribute values. However, the SMT solver can not achieve a certain goal in terms of a combinatorial coverage. We will now introduce a concept which tries to achieve this.
+
+\subsection{Combinatorial Testing}\label{subsec:combinatorial-testing}
+
+The flexibility of a ECIM model was explained thoroughly. However, with flexibility comes complexity in terms of possible configurations. 
+This problem is called \emph{software configuration space explosion}~\cite{interaction-patterns}. A popular approach to this issue is called \emph{combinatorial testing}, which computes a \emph{covering array}, i.e., a small set of configurations, such that all possible \emph{t-way} combinations of settings appear in at least one configuration. $t$ is usually a given \emph{interaction strength}~\cite{interaction-patterns}. 
+If we set $t=2$ (pair-wise testing), the resulting array needs to contain all combinations for all pairs of input values. 
+This approach already reduces the number of test-cases tremendously for low $t$. The negligible remaining problem is, that an error, which raises due to a combination of $t+1$ values, can not always be found.
+
+
+\begin{example}
+Assume 4 boolean variables $a,b,c$ and $d$ in a configurable software. Computing all possible combinations yields $2^4 = 16$ combinations. However, we can reduce the amount of test-cases by looking at all \emph{pair-combinations} of variables. In other words, we compute \emph{2-way} combinations. Consider the result in Table~\ref{fig:tcbool}. We have 6 test-cases which reduces the combinatorial explosion problem. 
+\begin{table}
+\centering
+ \caption{Resulting test-cases of 4 boolean variables.}\label{fig:tcbool}
+\begin{tabular}{c|c|c|c}
+\textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} \\ \hline
+\verb|true| & \verb|true| & \verb|true| & \verb|true| \\ \hline
+
+\verb|false| & \verb|false| & \verb|false| & \verb|true| \\ \hline
+
+\verb|false| & \verb|true| & \verb|false| & \verb|false| \\ \hline
+
+\verb|true| & \verb|false| & \verb|true| & \verb|false| \\ \hline
+
+\verb|true| & \verb|false| & \verb|false| & \verb|false| \\ \hline
+
+\verb|false| & \verb|false| & \verb|true| & \verb|false| 
+\end{tabular}
+\end{table}
+
+The drawback of this example is, that, we could not cover an error occurring with $a = \mathtt{true}, b = \mathtt{true}, c = \mathtt{false}$ or even an error involving all four variables which is not present in the table. 
+
+While this example is only for demonstration purposes, another example with 10 boolean input variables would result in 27 test-cases using a pair-wise approach instead of $2^{10} = 1,024$ test-cases achieving full coverage.
+\end{example}
+
+The problem, to compute an optimal covering set, i.e., a set of configurations, such that all possible \emph{t-way} combinations appear in at least one configuration is NP-hard~\cite{cov-arr-proof}.
+However, in the recent years there were many approaches published, by using various strategies from various topics. Lei et. al.~\cite{IOP-comb} uses a so-called \emph{In-Parameter-Order} strategy, where the idea is, to start with a simple and small test set and then achieve the result by growing horizontally and vertically. For details about this technique we refer to \cite{IOP-comb}. Other approaches use greedy algorithms, hill climbing algorithms or heuristics so speed up existing procedures.\\
+
+For our case it would be a desired mean to include such an approach. However, we can only apply this approach to unconstrained integers and we need to partition the input space of certain types, like integers.
+
+
+\section{Final Considerations}\label{sec:final}
+
+To sum up the previous Sections, one can see that the parsing of the constraints need to be done rather early. Since the structural considerations are currently using a greedy approach, several information of the constraints could even instruct the SMT solver by finding a coherent structure.
+
+After that, the structure has to be explored. To do that, we start with the smallest possible product and apply the staged configuration approach of Czarnecki et. al.~\cite{card-based-feature-models-formalization}. The skip-factor in Definition~\ref{def:staged} will be user-defined and fixed for each cardinality.\\
+
+
+The main part is the actual test-case generation. It is obvious, that some of the produced configurations can not satisfy the constraints due to structural incompatibilities. This is, where the SMT solver can help: it either finds a satisfiable attribute-assignment or reports unsatisfiability. In the latter case, we have to delete the test-case from our resulting test-set.
+
+The resulting order of the different tasks of the test case generator leads to the following steps, which have to be performed for each test-case:
+\begin{enumerate}
+ \item Run the $t$-wise algorithm to assign values to the unconstrained attributes.
+ \item The previously prepared structure by the staged configuration is decorated with \verb|key| attributes to distinguish the instances in the following SMT solving phase.
+ \item SMT-LIB code has to be produced in the following order:
+  \begin{enumerate}
+   \item Attribute and class data-type declarations.
+   \item Instances declaration including assertions regarding the data-types as well as assertions about bi-directional associations.
+   \item SMT assertions according to the dependencies.
+   \item Trailing instructions to check for satisfiability and, if so, to retrieve a model.
+  \end{enumerate}
+ \item SMT solver run. 
+ 	\begin{enumerate}
+ 	 \item In case of unsatisfiability, delete test-case from the result set.
+ 	 \item In case of satisfiability
+ 	 \begin{enumerate}
+ 	  \item translate result into real world values.
+ 	  \item report the real values in the final format to the user.
+ 	 \end{enumerate}
+ 	\end{enumerate}
+\end{enumerate}
+
+Steps 3 and 4 are applied to each abstract test-case.
+
+\subsection{Theoretical Considerations}\label{subsec:theor-eval}
+
+An important aspect when trying to apply theoretical results to industry, is to make a complexity analysis. Since most of the theories in SMT solvers are NP-hard, decidable or even undecidable, such an analysis can give reasons to change the encoding or even the overall approach. By evaluating the current achievements, one can observe that most of the theories become at least decidable by cutting of quantifiers. This is an important observation and will be considered in our case.
+We will now look at the different facets in our encoding and investigate the complexity. Later, in Chapter~\ref{chap:evaluation} we will examine these parts further in terms of the used SMT solver in practice.
+
+
+In our scenario we use algebraic data-types for the attribute type and the classes, uninterpreted functions for the instances as well as boolean logic and integer arithmetic for the constraints. All other aspects will be outsourced to the surrounding implementation.
+
+\subsubsection*{Uninterpreted Functions}
+
+Uninterpreted functions are an important fa\c{c}et in most of the usages of a SMT solver. This applies also to our scenario. Most decision procedures implement a so-called \emph{congruence closure algorithm}. Those algorithms are the focus of a long-lasting research. Already Nelson and Oppen, two important researchers in the SMT domain, worked on the combination of different theories but also on congruence closure algorithms~\cite{nels-oppen}. Their results were based on the work of Downey et. al.~\cite{congruence-closure}. 
+
+Determining the complexity of the congruence closure algorithm has been proven to be difficult. The current achievement is an average complexity of $\mathcal{O}(n \log n)$ but it is unknown whether this is optimal or not~\cite{smt-challenge}.
+
+
+
+
+
+\subsubsection*{Inductive Data-types}
+
+A \emph{inductive data-type}~\cite{smt-book} such as used in our scenario uses \emph{constructors}, and possible \emph{testers} and \emph{selectors}. The  $\Sigma$-signature of inductive data-types associates a function symbol with each constructor and selector and one predicate with each tester~\cite{smt-book}. Oppen provided an algorithm to decide over inductive data-types with one constructor in polynomial time. The general problem of inductive data-types remains NP hard, but since data-types were shown to be handy in practice, reasonably efficient algorithms exist.
+
+\subsubsection*{Arithmetic}
+The general arithmetic can be deduced from \emph{presburger arithmetic}, a calculus with the only symbols $\{\mathbb{N}, +, -, \leq\}$. Ground satisfiability of presburger arithmetic over the real numbers is decidable in polynomial time, whether using ground formulas over $\mathbb{R}$ is NP-complete~\cite{smt-book}.
+
+An interesting property comes with the use of \emph{difference logic}: This logic requires each atom to be $a - b\ \oplus\ t$ with $a,b$ to be uninterpreted constants, $\oplus \in \{ =, \leq\}$ and $t$ to be an integer. The quantifier free satisfiability problem of difference logic is $\mathcal{O}(n^2)$. The obvious extension of multiplication, complicates the overall complexity discussion: even conjunctions of integer-based ground formulas become undecidable~\cite{smt-book}.
+
+\section{Example}\label{sec:example}
+
+We will continue with the examples of the model and the dependencies of the previous chapters and partially show how test-cases are generated. First, recall the example of Chapter~\ref{chap:ecim} in Figure~\ref{fig:ecimEx2}. We will use it together with the dependencies on \textsf{Router} and \textsf{InterfaceIPv4}. 
+
+\begin{figure}
+\centering
+\begin{tikzpicture}[
+	level 1/.style={sibling distance=4cm, level distance=1.5cm},
+	level 2/.style={sibling distance=7cm, level distance=1.5cm},
+	level 3/.style={level distance=1.5cm}]
+
+\node [class,dashed] (managedElement) {ManagedElement=1}
+	child { node [class,dashed] (transport) {Transport=1}
+		child { node [attrClass] (vlanport) {
+			\nodepart{one} VlanPort
+			\nodepart[text width=5cm]{two} 
+			\begin{tabular}{lll}
+			vlanPortId & string & key\\
+			vlanId & uint16[1..4096] & mandatory\\
+			isTagged & boolean & \\
+			reservedBy & sequence & readOnly \\
+			& ~moRef & \\
+			\end{tabular}
+			}
+		edge from parent node [above]
+				{\scriptsize $[0..\mu]$}}
+		child { node [attrClass] (router) {
+			\nodepart{one} Router
+			\nodepart[text width=5cm]{two}
+			\begin{tabular}{lll}
+			routerId & string & key \\
+			ttl & int32[1..255] & \\
+			userLabel & string & isNillable \\
+			& & length=1..128
+			\end{tabular} }
+			child { node [attrClass] (interface) {
+				\nodepart{one} InterfaceIPv4
+				\nodepart[text width=5.3cm]{two}
+				\begin{tabular}{lll}
+				interfaceIPv4Id & string & key\\
+				mtu & int32 & isNillable\\
+				& ~[576..9000] & \\
+				operationalState & enum & readOnly\\
+				& ~DISABLED=0& \\
+				& ~ENABLED=1& \\
+				arpTimeout & uint32 & \\
+				loopback & boolean & isNillable\\
+				bfdStaticRoutes & enum & \\
+				& ~DISABLED=0 & \\
+				& ~ENABLED=1 & \\
+				trustDSCP & boolean & \\
+				encapsulation & moRef & isNillable\\
+				& $\to$ VlanPort & \\
+				\end{tabular}
+				}
+			edge from parent node [right]
+					{\scriptsize $[0..4096]$}}
+		edge from parent node [above]
+				{\scriptsize $[1..1]$}}
+	};
+
+\draw[dashed,-latex] (interface) -- (vlanport) node [near start] {\scriptsize encapsulation};	
+\end{tikzpicture}
+\caption[Example of a ECIM model]{Example of a ECIM model.}
+\label{fig:ecimEx2}
+\end{figure}
+
+\subsection*{1. Abstract Test Case}
+
+First, we want to create \emph{abstract} test-cases, i.e., only containing the number of instances as well as the order of them, which is implicitly given by the structure. This allows us having a starting point for the SMT solver which is then called to find values for the attributes or report unsatisfiability.
+
+We first have to define the unknown cardinality $\mu = 10$. Further, we will use a constant skip-factor $x = 2$. The resulting set of abstract test-cases (without system created instances) is:
+
+\begin{itemize}
+ \item \textsf{Router(1)}
+ \item \textsf{Router(1), VlanPort(2)}
+ \item \textsf{Router(1), VlanPort(2), InterfaceIPv4(2)}
+ \item \textsf{Router(1), VlanPort(2), InterfaceIPv4(4)}
+ \item \textsf{Router(1), VlanPort(2), InterfaceIPv4(6)}
+ \item \textsf{Router(1), VlanPort(2), InterfaceIPv4(8)}
+ \item ...
+ \item \textsf{Router(1), VlanPort(2), InterfaceIPv4(4096)}
+ \item \textsf{Router(1), VlanPort(4)}
+ \item \textsf{Router(1), VlanPort(4), InterfaceIPv4(2)}
+ \item ...
+ \item \textsf{Router(1), VlanPort(4), InterfaceIPv4(4096)}
+ \item ...
+ \item \textsf{Router(1), VlanPort(10), InterfaceIPv4(4096)}
+\end{itemize}
+
+We will illustrate the functionality of the SMT solving part on the resulting abstract test-case:\\
+
+\textsf{1*ManagedElement, 1*Transport, 1*Router, 2*VlanPort, 2*InterfaceIPv4}\\
+
+Another thing we have to take into consideration is the order of instances. This is another opportunity for the SMT solver to help with. We can see abstract instances as integer values and translate the needed sequential order of the instances into an adequate mathematical relation: a \emph{total order}. In other words, we translate each parent-child relation and each bi-directional association into a $a < b$, where $a$ and $b$ are abstract instances. Important to notice is that the client of a bi-directional association needs to be inserted before the server, since the latter one needs to know the full path of the client. \\
+
+For our purpose we would have the following fragment of SMT-LIB code:
+\begin{verbatim}
+(declare-const Router Int)
+(declare-const VlanPort Int)
+(declare-const InterfaceIPv4 Int)
+
+(assert (< Router VlanPort))
+(assert (< Router InterfaceIPv4))
+(assert (< VlanPort InterfaceIPv4))
+(check-sat)
+(get-model)
+\end{verbatim}
+
+The same idea applies as before: if the SMT solver is able to find a solution, i.e., if the constraints are satisfiable, we have an explicit order of the instances. This is obviously the case in this example, e.g., with \verb|Router=0|, \verb|VlanPort=1|, \verb|InterfaceIPv4=2| we satisfy the assertions.\\
+
+For the following steps, we need to review the dependencies on both classes \textsf{Router} (Listing~\ref{lst:schematronRouter}) and \textsf{InterfaceIPv4} (Listing~\ref{lst:schematronInterface}). 
+
+\subsection*{2. Unconstrained Attributes}
+
+As discussed before, we are interested for those attributes which are not part of a dependency. At the same time we will exclude key-attributes, since they are assumed to be assigned in advance and globally unique, which for our test-case means: \textsf{VlanPort=1}, \textsf{VlanPort=2}, \textsf{Router=3}, \textsf{InterfaceIPv4=4} and \textsf{InterfaceIPv4=5}. The rest of the attributes we have to take into account in the combinatorial approach are:
+
+\begin{itemize}
+ \item \textsf{VlanPort.}\verb|vlanId| ($[1..4096]$)
+ \item \textsf{VlanPort.}\verb|isTagged| (\verb|boolean|)
+ \item \textsf{Router.}\verb|userLabel| (\verb|string|, \verb|isNillable|)
+ \item \textsf{InterfaceIPv4.}\verb|mtu| ($[576..9000]$, \verb|isNillable|)
+ \item \textsf{InterfaceIPv4.}\verb|arpTimeout| (\verb|uint32|)
+ \item \textsf{InterfaceIPv4.}\verb|trustDSCP| (\verb|boolean|)
+\end{itemize}
+
+Further to the data-types we assume a partitioning of the input values where it is possible. Thus, for \verb|vlanId| we encode the input-range into 3 equidistant partitions %TODO compute
+For the string attribute \verb|userLabel| we assume to have a prepared string-list:
+\begin{itemize}
+ \item ``Ericsson SSR 8020''
+ \item ``Ericsson SSR 8004''
+ \item ``Ericsson SmartEdge 100''
+ \item ``Ericsson SmartEdge 1200''
+\end{itemize}
+
+
+If we would like to run the combinatorial approach, one might notice that in some scenarios we do not have enough values. For $t=2$ we would only have 22 value combinations for all test-cases, which is obviously not enough to supply the rest of the test-cases. However, in that case we could increase $t$ and continue. We can continue until $t=n$ where $n$ is the number of unconstrained attributes, which means, that we test all combinations.\\
+
+Thus, the start parameter for the computation of the covering array are the one in Table~\ref{tab:exAllPairs}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l|r}
+ \textbf{attribute} & \textbf{input parameter}\\ \hline
+ \textsf{VlanPort.}\verb|vlanId| & $[1..1366],[1367..2731],[2732..4096]$ \\ \hline
+ \textsf{VlanPort.}\verb|isTagged| & \verb|true|, \verb|false| \\ \hline
+ \textsf{Router.}\verb|userLabel| & \verb|null|, $[0,1,2,3]$ \\ \hline
+ \textsf{InterfaceIPv4.}\verb|mtu| & \verb|null|, $[576..3384],[3385..6192],[6193..9000]$ \\ \hline
+ \textsf{InterfaceIPv4.}\verb|arpTimeout| & 3 partitions from \verb|uint32| \\ \hline
+ \textsf{InterfaceIPv4.}\verb|trustDSCP| & \verb|true|, \verb|false| 
+\end{tabular}
+ \caption[Input parameter for covering array computation.]{The input parameters for the computation of the covering array. The partitions of \texttt{uint32} were ignored due to the big numbers in the ranges.}\label{tab:exAllPairs}
+\end{table}
+After executing the algorithm to compute the covering array we get 22 different test-cases. This was done by the same algorithm which will be used in the implementation in Chapter~\ref{chap:practice}. The resulting values are:
+\begin{itemize}
+ \item \verb|vlanId|: $[1..1366]$
+ \item \verb|isTagged|: \verb|false|
+ \item \verb|userLabel|: \verb|null|
+ \item \verb|mtu|: \verb|null|
+ \item \verb|arpTimeout|: $[0..1431655765]$
+ \item \verb|trustDSCP|: \verb|false|
+\end{itemize}
+A random value from the chosen intervals of the integer-attributes will be selected in step 4, the post-processing step.
+
+\subsection*{3. SMT solver}
+
+After getting values for the unconstrained attributes, we can start the transformation into SMT-LIB as discussed in Section~\ref{sec:mconstraints}. The overall SMT-LIB code of the presented example can be seen in Appendix~\ref{app:smtOutput}. \\
+The definition of the attribute-type and the 3 used classes are the following:
+\begin{verbatim}
+(declare-datatypes () ((Attribute null
+	                    (mk_Attribute
+	                     (value Int)
+	                    )
+	                  ))
+)
+
+;VlanPort
+(declare-datatypes () ((VlanPort
+                        (mk_VlanPort
+                         (vlanPortId Attribute)
+                        )
+                      ))
+)
+
+;Router
+(declare-datatypes () ((Router 
+                        (mk_Router
+                         (routerId Attribute)
+                         (ttl Attribute)
+                        )
+                      ))
+)
+
+;InterfaceIPv4 
+(declare-datatypes () ((InterfaceIPv4
+                        (mk_InterfaceIPv4
+                         (interfaceIPv4Id Attribute)
+                         (encapsulation Attribute)
+                         (loopback Attribute)
+                         (bfdStaticRoutes Attribute)
+                        )
+                      ))
+)
+\end{verbatim}
+
+We can see that the key attributes are included, since they are needed for eventual bi-directional associations. For example \textsf{VlanPort} has no constrained attributes, but the key-attribute needs to be included for the bi-directional association from \textsf{InterfaceIPv4}. \\
+
+The next encoding involves the instances as well as the data-type restrictions of the attributes, which we will show on one instance of each class.
+
+\begin{verbatim}
+(declare-const VlanPort___1 VlanPort)
+(assert (= (vlanPortId VlanPort___1) 
+           (mk_Attribute 1)
+        )
+)
+...
+(declare-const Router___3 Router)
+(assert (= (routerId Router___3)
+           (mk_Attribute 3)
+        )
+)
+(assert (and (<= 1 (value (ttl Router___3)))
+             (<= (value (ttl Router___3)) 255)
+        )
+)
+        
+(declare-const InterfaceIPv4___4 (InterfaceIPv4))
+(assert (= (interfaceIPv4Id InterfaceIPv4___4) 
+           (mk_Attribute 4)
+        )
+)
+(assert (or (= (encapsulation InterfaceIPv4___4) null)
+            (and (<= 1 
+                     (value (encapsulation InterfaceIPv4___4))
+                 )
+                 (<= (value (encapsulation InterfaceIPv4___4))
+                     2)
+            )
+        )
+)
+(assert (or (= (loopback InterfaceIPv4___4) null)
+            (= (loopback InterfaceIPv4___4) 
+               (mk_Attribute 0)
+            )
+            (= (loopback InterfaceIPv4___4) 
+               (mk_Attribute 1)
+            )
+        )
+)
+(assert (or (= (bfdStaticRoutes InterfaceIPv4___4) 
+               (mk_Attribute 0)
+            )
+            (= (bfdStaticRoutes InterfaceIPv4___4) 
+               (mk_Attribute 1)
+            )
+        )
+)
+...
+\end{verbatim}
+
+Now all instances are set up and we need the final assertions: the dependencies. We use the transformation approach illustrated before:
+
+\begin{verbatim}
+(assert (<= (+ (ite (= (loopback InterfaceIPv4___4) null) 0 1)
+               (ite (= (loopback InterfaceIPv4___5) null) 0 1)
+            )
+        64))
+(assert (= (value (ttl Router___3)) 64))
+(assert (distinct (encapsulation InterfaceIPv4___4)
+                  (encapsulation InterfaceIPv4___5)
+        ))
+        
+(assert (or (and (not (= (encapsulation InterfaceIPv4___4) 
+                         null))
+                 (not (= (loopback InterfaceIPv4___4) 
+                         (mk_Attribute 1)))
+            )
+            (and (= (loopback InterfaceIPv4___4) 
+                    (mk_Attribute 1))
+                 (not (= (encapsulation InterfaceIPv4___4) 
+                         null))
+            )
+         )
+)
+(assert (not (and (= (loopback InterfaceIPv4___4) 
+                     (mk_Attribute 1))
+                  (= (bfdStaticRoutes InterfaceIPv4___4) 
+                     (mk_Attribute 1))
+             )
+        )
+)
+
+(assert (or (and (not (= (encapsulation InterfaceIPv4___5) 
+                         null))
+                 (not (= (loopback InterfaceIPv4___5) 
+                         (mk_Attribute 1)))
+            )
+            (and (= (loopback InterfaceIPv4___5) 
+                    (mk_Attribute 1))
+                 (not (= (encapsulation InterfaceIPv4___5) 
+                         null))
+            )
+         )
+)
+(assert (not (and (= (loopback InterfaceIPv4___5) 
+                     (mk_Attribute 1))
+                  (= (bfdStaticRoutes InterfaceIPv4___5) 
+                     (mk_Attribute 1))
+             )
+        )
+)
+\end{verbatim}
+
+The final instructions for the SMT solver are those to check for satisfiability as well as retrieving the model. The full input script as well as the output of the SMT solver can be found in Appendix~\ref{app:smtOutput}. 
+
+
+\subsection*{4. Post-Processing}
+
+This step is needed to translate the SMT solver output into real values. In this step, all encoding aspects of data-types are translated into real enum-values, strings, booleans as well as selecting random values of the chosen ranges from the combinatorial algorithm. Finally, real syntax for the configuration manager is produced, which is trivial and the syntax will not be discussed here.
