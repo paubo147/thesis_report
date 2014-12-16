@@ -1,0 +1,205 @@
+\begin{thebibliography}{10}
+
+\bibitem{grammar-based-tc-generation-fm}
+Ebrahim Bagheri, Faezeh Ensan, and Dragan Gasevic.
+\newblock {G}rammar-based {T}est {G}eneration for {S}oftware {P}roduct {L}ine
+  {F}eature {M}odels.
+\newblock In {\em Proceedings of the 2012 Conference of the Center for Advanced
+  Studies on Collaborative Research}, CASCON '12, pages 87--101, Riverton, NJ,
+  USA, 2012. IBM Corp.
+
+\bibitem{smt-lib2}
+Clark Barrett, Aaron Stump, and Cesare Tinelli.
+\newblock {The SMT-LIB Standard: Version 2.0}.
+\newblock Technical report, Department of Computer Science, The University of
+  Iowa, 2010.
+\newblock Available at {\tt www.SMT-LIB.org}.
+
+\bibitem{smt-book}
+Clark~W. Barrett, Roberto Sebastiani, Sanjit~A. Seshia, and Cesare Tinelli.
+\newblock {S}atisfiability {M}odulo {T}heories.
+\newblock In Armin Biere, Marijn Heule, Hans van Maaren, and Toby Walsh,
+  editors, {\em Handbook of Satisfiability}, volume 185 of {\em Frontiers in
+  Artificial Intelligence and Applications}, pages 825--885. {IOS} Press, 2009.
+
+\bibitem{fm-grammar-prop}
+Don Batory.
+\newblock {F}eature {M}odels, {G}rammars, and {P}ropositional {F}ormulas.
+\newblock In {\em Proceedings of the 9th International Conference on Software
+  Product Lines}, SPLC'05, pages 7--20, Berlin, Heidelberg, 2005.
+  Springer-Verlag.
+
+\bibitem{feature-model-survey}
+David Benavides, Antonio~Ruiz Cort{\'{e}}s, Pablo Trinidad, and Sergio Segura.
+\newblock {A} {S}urvey on the {A}utomated {A}nalyses of {F}eature {M}odels.
+\newblock In Jos{\'{e}} Crist{\'{o}}bal~Riquelme Santos and Pere Botella,
+  editors, {\em {XI} Jornadas de Ingenier{\'{\i}}a del Software y Bases de
+  Datos {(JISBD} 2006), Octubre 3-6, 2006, Sitges, Barcelona, Spain.}, pages
+  367--376, 2006.
+
+\bibitem{auto-reason-fm}
+David Benavides, Pablo Trinidad, and Antonio Ruiz-Cortés.
+\newblock Automated reasoning on feature models.
+\newblock In {\em LNCS, ADVANCED INFORMATION SYSTEMS ENGINEERING: 17TH
+  INTERNATIONAL CONFERENCE, CAISE 2005}, page 2005. Springer, 2005.
+
+\bibitem{theroies-z3}
+Nikolaj Bj{\o}rner.
+\newblock {E}ngineering {T}heories with {Z3}.
+\newblock In Konstantin Korovin, Stephan Schulz, and Eugenia Ternovska,
+  editors, {\em {IWIL} 2012: The 9th International Workshop on the
+  Implementation of Logics, Merida, Venezuela, March 10, 2012}, volume~22 of
+  {\em EPiC Series}, pages 1--2. EasyChair, 2012.
+
+\bibitem{tractability}
+Nikolaj Bj{\o}rner and Leonardo de~Moura.
+\newblock {T}ractability and {M}odern {S}atisfiability {M}odulo {T}eory
+  {S}olvers.
+\newblock In {\em Handbook of Tractability}. Cambridge University Press, 2012.
+
+\bibitem{interaction-test-hcs-constr}
+Myra~B. Cohen, Matthew~B. Dwyer, and Jiangfan Shi.
+\newblock {I}nteraction {T}esting of {H}ighly-{C}onfigurable {S}ystems in the
+  {P}resence of {C}onstraints.
+\newblock In David~S. Rosenblum and Sebastian~G. Elbaum, editors, {\em
+  Proceedings of the {ACM/SIGSOFT} International Symposium on Software Testing
+  and Analysis, {ISSTA} 2007, London, UK, July 9-12, 2007}, pages 129--139.
+  {ACM}, 2007.
+
+\bibitem{staged-configuration}
+Krzysztof Czarnecki, Simon Helsen, and Ulrich~W. Eisenecker.
+\newblock {S}taged {C}onfiguration {U}sing {F}eature models.
+\newblock In Robert~L. Nord, editor, {\em Software Product Lines, Third
+  International Conference, {SPLC} 2004, Boston, MA, USA, August 30-September
+  2, 2004, Proceedings}, volume 3154 of {\em Lecture Notes in Computer
+  Science}, pages 266--283. Springer, 2004.
+
+\bibitem{card-based-feature-models-formalization}
+Krzysztof Czarnecki, Simon Helsen, and Ulrich~W. Eisenecker.
+\newblock {F}ormalizing {C}ardinality-based {F}eature {M}odels and their
+  {S}pecialization.
+\newblock {\em Software Process: Improvement and Practice}, 10(1):7--29, 2005.
+
+\bibitem{z3-solver}
+Leonardo De~Moura and Nikolaj Bj{\o}rner.
+\newblock {Z3}: {A}n {E}fficient {SMT} {S}olver.
+\newblock In {\em Proceedings of the Theory and Practice of Software, 14th
+  International Conference on Tools and Algorithms for the Construction and
+  Analysis of Systems}, TACAS'08/ETAPS'08, pages 337--340, Berlin, Heidelberg,
+  2008. Springer-Verlag.
+
+\bibitem{smt-appetizer}
+Leonardo~Mendon\c{c}a de~Moura and Nikolaj Bj{\o}rner.
+\newblock {Satisfiability Modulo Theories: An Appetizer}.
+\newblock In Marcel Vinicius~Medeiros Oliveira and Jim Woodcock, editors, {\em
+  SBMF}, volume 5902 of {\em Lecture Notes in Computer Science}, pages 23--36.
+  Springer, 2009.
+
+\bibitem{congruence-closure}
+Peter~J. Downey, Ravi Sethi, and Robert~Endre Tarjan.
+\newblock {V}ariations on the {C}ommon {S}ubexpression {P}roblem.
+\newblock {\em J. {ACM}}, 27(4):758--771, 1980.
+
+\bibitem{lin-arith}
+Bruno Dutertre and Leonardo~Mendon{\c{c}}a de~Moura.
+\newblock {A} {F}ast {L}inear-{A}rithmetic {S}olver for {DPLL(T)}.
+\newblock In {\em Computer Aided Verification, 18th International Conference,
+  {CAV} 2006, Seattle, WA, USA, August 17-20, 2006, Proceedings}, pages 81--94,
+  2006.
+
+\bibitem{design-patterns}
+Erich Gamma, Richard Helm, Ralph Johnson, and John Vlissides.
+\newblock {\em Design Patterns: Elements of Reusable Object-oriented Software}.
+\newblock Addison-Wesley Longman Publishing Co., Inc., Boston, MA, USA, 1995.
+
+\bibitem{path-interaction-coverage}
+Wolfgang Grieskamp, Xiao Qu, Xiangjun Wei, Nicolas Kicillof, and Myra~B. Cohen.
+\newblock {I}nteraction {C}overage {M}eets {P}ath {C}overage by {SMT}
+  {C}onstraint {S}olving.
+\newblock In Manuel N{\'{u}}{\~{n}}ez, Paul Baker, and Mercedes~G. Merayo,
+  editors, {\em Testing of Software and Communication Systems, 21st {IFIP} {WG}
+  6.1 International Conference, {TESTCOM} 2009 and 9th International Workshop,
+  {FATES} 2009, Eindhoven, The Netherlands, November 2-4, 2009. Proceedings},
+  volume 5826 of {\em Lecture Notes in Computer Science}, pages 97--112.
+  Springer, 2009.
+
+\bibitem{feature-ori-pl-engineering}
+K.~C. Kang, Jaejoon Lee, and P.~Donohoe.
+\newblock {Feature-oriented product line engineering}.
+\newblock {\em Software, IEEE}, 19(4):58--65, 2002.
+
+\bibitem{cov-arr-proof}
+Richard~M. Karp.
+\newblock {R}educibility {A}mong {C}ombinatorial {P}roblems.
+\newblock In Raymond~E. Miller and James~W. Thatcher, editors, {\em Proceedings
+  of a symposium on the Complexity of Computer Computations, held March 20-22,
+  1972, at the {IBM} Thomas J. Watson Research Center, Yorktown Heights, New
+  York.}, The {IBM} Research Symposia Series, pages 85--103. Plenum Press, New
+  York, 1972.
+
+\bibitem{hampi}
+Adam Kiezun, Vijay Ganesh, Philip~J. Guo, Pieter Hooimeijer, and Michael~D.
+  Ernst.
+\newblock {HAMPI}: {A} {S}olver for {S}tring {C}onstraints, 2009.
+
+\bibitem{IOP-comb}
+Yu~Lei and Kuo-Chung Tai.
+\newblock {I}n-{P}arameter-{O}rder: {A} {T}est {G}eneration {S}trategy for
+  {P}airwise {T}esting.
+\newblock In {\em HASE}, pages 254--261. IEEE Computer Society, 1998.
+
+\bibitem{ecr}
+Marc{\'{\i}}lio Mendon{\c{c}}a, Andrzej Wasowski, Krzysztof Czarnecki, and
+  Donald~D. Cowan.
+\newblock Efficient compilation techniques for large scale feature models.
+\newblock In Yannis Smaragdakis and Jeremy~G. Siek, editors, {\em Generative
+  Programming and Component Engineering, 7th International Conference, {GPCE}
+  2008, Nashville, TN, USA, October 19-23, 2008, Proceedings}, pages 13--22.
+  {ACM}, 2008.
+
+\bibitem{nels-oppen}
+Greg Nelson and Derek~C. Oppen.
+\newblock {F}ast {D}ecision {P}rocedures {B}ased on {C}ongruence {C}losure.
+\newblock {\em J. {ACM}}, 27(2):356--364, 1980.
+
+\bibitem{smt-challenge}
+Robert Nieuwenhuis, Albert Oliveras, Enric Rodr{\'{\i}}guez{-}Carbonell, and
+  Albert Rubio.
+\newblock {C}hallenges in {S}atisfiability {M}odulo {T}heories.
+\newblock In Franz Baader, editor, {\em Term Rewriting and Applications, 18th
+  International Conference, {RTA} 2007, Paris, France, June 26-28, 2007,
+  Proceedings}, volume 4533 of {\em Lecture Notes in Computer Science}, pages
+  2--18. Springer, 2007.
+
+\bibitem{interaction-patterns}
+Elnatan Reisner, Charles Song, Kin-Keung Ma, Jeffrey~S. Foster, and Adam
+  Porter.
+\newblock {Evaluating Interaction Patterns in Configurable Software Systems}.
+\newblock Technical Report CS-TR-4940, Computer Science Department, University
+  of Maryland, College Park, June 2009.
+
+\bibitem{csp}
+Stuart~J. Russell and Peter Norvig.
+\newblock {\em Artificial Intelligence: A Modern Approach}.
+\newblock Pearson Education, 2 edition, 2003.
+
+\bibitem{kudzu}
+Prateek Saxena, Devdatta Akhawe, Steve Hanna, Feng Mao, Stephen McCamant, and
+  Dawn Song.
+\newblock {A Symbolic Execution Framework for JavaScript}.
+\newblock In {\em 31st {IEEE} Symposium on Security and Privacy, S{\&}P 2010,
+  16-19 May 2010, Berleley/Oakland, California, {USA}}, pages 513--528. {IEEE}
+  Computer Society, 2010.
+
+\bibitem{fm-normalization}
+Arie van Deursen and Paul Klint.
+\newblock {Domain-Specific Language Design Requires Feature Descriptions}.
+\newblock {\em Journal of Computing and Information Technology}, 10:2002, 2001.
+
+\bibitem{rex}
+M.~Veanes, P.~de~Halleux, and N.~Tillmann.
+\newblock {Rex: Symbolic Regular Expression Explorer}.
+\newblock In {\em Software Testing, Verification and Validation (ICST), 2010
+  Third International Conference on}, pages 498--507, April 2010.
+
+\end{thebibliography}

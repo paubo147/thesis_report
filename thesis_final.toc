@@ -1,0 +1,64 @@
+\select@language {english}
+\thispagestyle {empty}
+\select@language {english}
+\select@language {english}
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}
+\contentsline {section}{\numberline {1.1}Project Context}{2}{section.1.1}
+\contentsline {section}{\numberline {1.2}Problem Description}{2}{section.1.2}
+\contentsline {section}{\numberline {1.3}Goal and Scope of this Thesis}{4}{section.1.3}
+\contentsline {section}{\numberline {1.4}Structure of the Document}{5}{section.1.4}
+\contentsline {chapter}{\numberline {2}The Ericsson Common Information Model (ECIM)}{6}{chapter.2}
+\contentsline {section}{\numberline {2.1}Example Model}{7}{section.2.1}
+\contentsline {section}{\numberline {2.2}Concepts}{8}{section.2.2}
+\contentsline {subsection}{\numberline {2.2.1}Classes}{8}{subsection.2.2.1}
+\contentsline {subsection}{\numberline {2.2.2}Cardinalities}{8}{subsection.2.2.2}
+\contentsline {subsection}{\numberline {2.2.3}Attributes}{9}{subsection.2.2.3}
+\contentsline {subsection}{\numberline {2.2.4}Instance uniqueness}{10}{subsection.2.2.4}
+\contentsline {subsection}{\numberline {2.2.5}Bi-directional Associations}{11}{subsection.2.2.5}
+\contentsline {section}{\numberline {2.3}Configurations}{11}{section.2.3}
+\contentsline {section}{\numberline {2.4}Scientific Context}{13}{section.2.4}
+\contentsline {chapter}{\numberline {3}Constraints}{16}{chapter.3}
+\contentsline {section}{\numberline {3.1}Example Dependencies}{16}{section.3.1}
+\contentsline {section}{\numberline {3.2}XPath Expression Set}{18}{section.3.2}
+\contentsline {section}{\numberline {3.3}Scientific Context}{20}{section.3.3}
+\contentsline {subsection}{\numberline {3.3.1}Constraint Satisfaction Problem (CSP)}{20}{subsection.3.3.1}
+\contentsline {chapter}{\numberline {4}Methodology}{22}{chapter.4}
+\contentsline {section}{\numberline {4.1}General Considerations}{22}{section.4.1}
+\contentsline {section}{\numberline {4.2}SMT Translation of General Concepts}{23}{section.4.2}
+\contentsline {section}{\numberline {4.3}General Approach}{27}{section.4.3}
+\contentsline {section}{\numberline {4.4}Structural Characteristics}{27}{section.4.4}
+\contentsline {section}{\numberline {4.5}Dependencies}{28}{section.4.5}
+\contentsline {section}{\numberline {4.6}Unconstrained Attributes}{30}{section.4.6}
+\contentsline {subsection}{\numberline {4.6.1}Combinatorial Testing}{30}{subsection.4.6.1}
+\contentsline {section}{\numberline {4.7}Final Considerations}{32}{section.4.7}
+\contentsline {subsection}{\numberline {4.7.1}Theoretical Considerations}{33}{subsection.4.7.1}
+\contentsline {section}{\numberline {4.8}Example}{34}{section.4.8}
+\contentsline {chapter}{\numberline {5}Implementation}{44}{chapter.5}
+\contentsline {section}{\numberline {5.1}Goal and Approach}{44}{section.5.1}
+\contentsline {section}{\numberline {5.2}Work-flow and Architecture}{45}{section.5.2}
+\contentsline {section}{\numberline {5.3}User Annotations}{47}{section.5.3}
+\contentsline {section}{\numberline {5.4}Technical Aspects}{49}{section.5.4}
+\contentsline {section}{\numberline {5.5}Implementation Details}{50}{section.5.5}
+\contentsline {chapter}{\numberline {6}Evaluation}{56}{chapter.6}
+\contentsline {section}{\numberline {6.1}Final Comments on the Theoretical Evaluation}{56}{section.6.1}
+\contentsline {section}{\numberline {6.2}Metrics}{57}{section.6.2}
+\contentsline {section}{\numberline {6.3}Practical Evaluation}{57}{section.6.3}
+\contentsline {subsection}{\numberline {6.3.1}Model description}{58}{subsection.6.3.1}
+\contentsline {subsection}{\numberline {6.3.2}Practical Evaluation Results}{58}{subsection.6.3.2}
+\contentsline {section}{\numberline {6.4}Integration Evaluation}{59}{section.6.4}
+\contentsline {chapter}{\numberline {7}Discussion}{60}{chapter.7}
+\contentsline {section}{\numberline {7.1}SMT Encodings}{60}{section.7.1}
+\contentsline {section}{\numberline {7.2}Evaluation Discussion}{61}{section.7.2}
+\contentsline {section}{\numberline {7.3}Impact}{61}{section.7.3}
+\contentsline {section}{\numberline {7.4}Future Work}{62}{section.7.4}
+\contentsline {chapter}{\numberline {8}Conclusion}{65}{chapter.8}
+\contentsline {chapter}{References}{66}{section*.44}
+\contentsline {chapter}{\numberline {A}Figures}{70}{Appendix.1.A}
+\contentsline {chapter}{\numberline {B}SMT Encoding Example}{71}{Appendix.1.B}
+\contentsline {section}{\numberline {B.1}Input Script}{71}{section.1.B.1}
+\contentsline {section}{\numberline {B.2}SMT solver plain output}{75}{section.1.B.2}
+\contentsline {chapter}{\numberline {C}XPath To SMT-LIB Mappings}{77}{Appendix.1.C}
+\contentsline {chapter}{\numberline {D}Code Listings}{79}{Appendix.1.D}
+\contentsline {chapter}{\numberline {E}Evaluation Results}{81}{Appendix.1.E}
+\select@language {swedish}
+\select@language {english}

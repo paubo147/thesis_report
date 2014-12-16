@@ -90,15 +90,15 @@ The main concept of an ECIM model is a \emph{managed object class (MOC)} or simp
 
 The classes \textsf{ManagedElement} and \textsf{Transport} have a dashed border in the example model. This means that the classes are \verb|systemCreated|. In other words, the system takes care of the creation of the instances and excludes the user from inserting, modifying or deleting such instances. \\
 
-Classes are connected by solid edges, called parent-child relations. Besides defining the structure of the resulting relations, they also specify \emph{containment relations}. For example the classes \textsf{Router} and \textsf{InterfaceIPv4} in Figure~\ref{fig:ecimEx} are connected by a parent-child relation, which means that a instance of \textsc{Router} contains a ``specific amount'' of \textsf{InterfaceIPv4}-instances.
+Classes are connected by solid edges, called parent-child relations. Besides defining the structure of the resulting relations, they also specify \emph{containment relations}. For example the classes \textsf{Router} and \textsf{InterfaceIPv4} in Figure~\ref{fig:ecimEx} are connected by a parent-child relation, which means that a instance of \textsf{Router} contains a ``specific amount'' of \textsf{InterfaceIPv4}-instances.
 
 
 \subsection{Cardinalities}\label{subsec:card}
 
 The expression ``specific amount'' leads to the concept of \emph{cardinalities}. Cardinalities are similar concepts to the ones in UML class diagrams or ER diagrams and are used to define the \emph{dimensions} of the resulting configurations. They are defined as intervals on the parent-child relations of the example model. They define the minimal and maximal number of child-instances a parent-instance can possibly have. \\
-In a resulting configuration of the example in Figure~\ref{fig:ecimEx}, an instance of \textsf{Router} can contain between 0 and 4096 instances of \textsf{InterfaceIPv4}. This works analogously for all the other constraints.\\
+In a resulting configuration of the example in Figure~\ref{fig:ecimEx}, an instance of \textsf{Router} can contain between 0 and 4096 instances of \textsf{InterfaceIPv4}. This works analogously for all the other cardinalities.\\
 
-There are situations where cardinalities are un-specified as between \textsf{Transport} and \textsf{VlanPort} in the example. The cardinality $[0..\mu]$ indicates, that each instance of \textsf{Transport} can have between 0 and $\mu$ instances of \textsf{VlanPort}. Note that $\mu$ is a placeholder for a chosen value. To get such a value for $\mu$, we either have to consider the constraints or the user has to provide them as a separate information.
+There are situations where cardinalities are un-specified as between \textsf{Transport} and \textsf{VlanPort} in the example. The cardinality $[0..\mu]$ indicates, that each instance of \textsf{Transport} can have between 0 and $\mu$ instances of \textsf{VlanPort}. Note that $\mu$ is a placeholder for a chosen value. To get such a value for $\mu$, we either have to consider the constraints or the user has to provide it as a separate information.
 
 \subsection{Attributes}\label{subsec:attr}
 
@@ -398,6 +398,8 @@ value: ``HIGH''};
 \caption[Example of a feature model]{Example of the \emph{mobile phone} feature model.}
 \label{fig:feature-model}
 \end{figure}
+
+Important to notice is, that in our example the inner nodes of the tree are not only abstract concepts, but are actually used and need to be instantiated as any other class.
 
 The cardinalities $\langle 1 - 1 \rangle$ and $\langle 0 - 2 \rangle$ in the example are \emph{group cardinalities} which are applied on a group of features. They are not used in the ECIM specification.
 

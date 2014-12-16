@@ -1,0 +1,14 @@
+This is BibTeX, Version 0.99dThe top-level auxiliary file: thesis_final.aux
+A level-1 auxiliary file: chapters/front.aux
+A level-1 auxiliary file: chapters/title.aux
+The style file: plain.bst
+A level-1 auxiliary file: chapters/copyright.aux
+Database file #1: bibtex/thesis.bib
+Repeated entry---line 576 of file bibtex/thesis.bib
+ : @inproceedings{rex
+ :                   ,
+I'm skipping whatever remains of this entry
+A bad cross reference---entry "lin-arith"
+refers to entry "DBLP:conf/cav/2006", which doesn't exist
+Warning--I didn't find a database entry for "DBLP:conf/cav/2006"
+(There were 2 error messages)
