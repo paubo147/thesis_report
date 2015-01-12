@@ -137,7 +137,7 @@ The module which constructs and launches the chain will be our main program. Con
 
 \section{User Annotations}\label{sec:annot}
 
-As we have seen, there are situations where the information taken from the MIM model is not enough to produce suitable test-cases. To provide all the needed information, we require the user to provide an \emph{annotation} file. This file is also in XML-format and provides a way for the user to create test-cases for different scenario, i.e., hardware configurations.
+As we have seen, there are situations where the information taken from the ECIM model is not enough to produce suitable test-cases. To provide all the needed information, we require the user to provide an \emph{annotation} file. This file is also in XML-format and provides a way for the user to create test-cases for different scenarios, i.e., hardware configurations.
 
 
 Limits for cardinalities are one example of such a missing information. Most of the time, the user knows how many children there are required for a real test-case.
@@ -154,7 +154,7 @@ We decided to use Python because of the dynamic nature of the language, the big 
 
 We used the SMT solver z3 from Microsoft\footnote{\url{http://z3.codeplex.com/}}, a high-performance SMT solver which allows SMT-LIB as input language and supports a big variety of theories. Further, the authors are frequently publishing articles about theories, theorem proving and other SMT-related subjects. The solver is currently used for verification and testing purposes of several Microsoft products. It also took place in several SMT competitions and the documentation provides good support to develop applications.
 
-The formerly discussed \emph{chain-of-responsibility} pattern can be implemented using the object-oriented features as well as operator overloading of Python. As denoted before, we have a \verb|go| function, which encapsulates the call to \verb|handle| which is then overridden in the sub-classes. The overloaded \verb|__add__| operator is used to connect a chain element to the existing one. The code of the base class \verb|Handler| can be found in Listing~\ref{lst:go} in the Appendix~\ref{app:code}.
+The formerly discussed \emph{chain-of-responsibility} pattern can be implemented using the object-oriented features as well as operator overloading of Python. As denoted before, we have a \verb|go| function, which encapsulates the call to \verb|handle| which is then overridden in the sub-classes. The overloaded \verb|__add__| operator is used to connect a chain element to the existing one. The code of the base class \verb|Handler| can be found in Appendix~\ref{app:code}.
 
 
 The remaining discussion is, which object we are going to pass to the chain: the first choice was, to create an object containing all the needed information from the XML files as well as user annotations. Later, we decided to use a built-in \verb|dict| object, which is internally implemented through hash-tables using open addressing for hash-collisions. Both indicators for fast access times and vanishingly small memory overhead on re-hashing. Thus, we are dealing with simple key-value pairs. This allows a fail-safe implementation.
@@ -262,18 +262,18 @@ This module is responsible for the execution of the final considerations in the 
  
  \item Write the prepared SMT-LIB code into a file and run the SMT code. 
  
- \item Check if the result was satisfiable. If it is the case, then parse and translate the output model of the SMT solver using the SMT-LIB parser into the adequate format of the test-cases and call the \verb|TestCaseWriter|. Again, this parser uses \verb|ply|. If it is unsatisfiable, it simply writes the SMT code into a specific file. This mechanism is used to understand the generated code of the tool and examine it further. The same mechanism is used, if the SMT solver returns something else than \verb|SAT|, \verb|UNSAT| or \verb|TIMEOUT| in case a timeout is given in the annotation file.
+ \item Check if the result was satisfiable. If it is the case, then parse and translate the output model of the SMT solver using the SMT-LIB parser into the adequate format of the test-cases and call the \texttt{Test\-Case\-Writer}. Again, this parser uses \texttt{ply}. If it is unsatisfiable, it simply writes the SMT code into a specific file. This mechanism is used to understand the generated code of the tool and examine it further. The same mechanism is used, if the SMT solver returns something else than \texttt{SAT}, \texttt{UNSAT} or \texttt{TIMEOUT} in case a timeout is given in the annotation file.
 \end{enumerate}
 
 Before calling the SMT solver, the input file consists of the SMT encoding as seen in Section~\ref{sec:example}:
 \begin{itemize}
- \item The declarative datatype \verb|attribute|, which allows values to be \verb|null|.
+ \item The declarative datatype \texttt{attribute}, which allows values to be \texttt{null}.
  
  \item For each class, a declarative data-type with its attributes.
  
  \item The instances of each class as a constant. In SMT terms this is a function without parameters. 
  
- \item Assertions regarding the instances, i.e., attribute ranges, fixed key values and distinctive bi-directional associations. It also sets \verb|moRef| attributes to null, if the client is missing in the set of classes.
+ \item Assertions regarding the instances, i.e., attribute ranges, fixed key values and distinctive bi-directional associations. It also sets \texttt{moRef} attributes to null, if the client is missing in the set of classes.
  
  \item Dependencies are inserted as assertions.
  
@@ -282,7 +282,7 @@ Before calling the SMT solver, the input file consists of the SMT encoding as se
 
 This file is passed to the SMT solver together with the user-defined parameters for the SMT solver, such as time-out from the user annotations.
 
-As mentioned earlier, the next module, namely the \verb|TestCaseWriter| is called after \emph{every} successful SMT run. This allows the user to interrupt the overall test-case generation process at anytime and still retrieving the currently generated test-cases.
+As mentioned earlier, the next module, namely the \texttt{TestCaseWriter} is called after \emph{every} successful SMT run. This allows the user to interrupt the overall test-case generation process at anytime and still retrieving the currently generated test-cases.
 
 
 \subsection*{TestCaseWriter}

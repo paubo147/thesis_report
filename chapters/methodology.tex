@@ -1,49 +1,49 @@
 \chapter{Methodology}\label{chap:methodology}
 
-This chapter will lead to the overall process of the test-case generation. It uses the examples from the previous chapters dealing with the ECIM models (Chapter~\ref{chap:ecim}) and the constraints (Chapter~\ref{chap:constraints}). \\
-
-%TODO change next paragraph: very vague
-%TODO 1. constraints. with them it stands or fails. Therefore we stick to SMT solving. In order to 
-Before merging both examples from the previous chapters into the test-case generation, we first will study general considerations as well as the subdivision of the problem. Then the process is illustrated on an example.
+This chapter will merge the example used in the previous chapters (Chapter~\ref{chap:ecim} and Chapter~\ref{chap:constraints}). Before doing that, general considerations will be pointed out. Data-types as well as the used constraint language (XPath) will be brought into a test-case generation context. Then the problem is subdivided into three different parts, which are treated differently in the test-case generation process. The chapter is concluded with an overall example, i.e., by merging the examples from the previous chapters.
 
 \section{General Considerations}\label{sec:general}
 
-The overall purpose is to create instances in an automated fashion. Thus, the best way would be, to generate instances from the model without any user interaction. Since one important requirement is the coherency with respect to the dependencies, we need them in a central position of the overall test-case generation process. 
-In order to do that, we need to perform a translation from the current format of the model (XML) to the SMT readable input format. Since most of the SMT solver use the standardized SMT-LIB input language, we will use it as well. Details about the implementation and the used SMT solver are presented in Chapter~\ref{chap:practice}.\\
+The goal is to create instances from a ECIM model description in an automated fashion. Thus, the optimal result would be, to generate instances from the model without any user interaction. This implies further, that the model needs to be complete, i.e., to contain all necessary information to generate configurations automatically. One problem with this, are unspecified cardinalities. As seen before in the Example model of Chapter~\ref{chap:ecim}, cardinalities can be unspecified. That either means that there exists a general consensus about such an unspecified number or it is further encoded in the dependencies. This could be possible by the use of the \verb|count|-function. In the former case, we need to provide an interface for the user to specify, i.e., re-define such a cardinality. \\
 
-No matter how the overall procedure will look like, we need to encode the concepts \emph{class}, \emph{attribute} and \emph{instance}, because all of them can appear in XPath expressions of the dependencies. In the SMT domain, the theory of \emph{uninterpreted (i.e., free) functions} is subject of current research and a lot of effort has been put into improving the decision procedures in terms of efficiency. Thus, we will start by explaining the translation of the formerly mentioned concepts.
+The scientific link to SAT modulo theories of the last chapter will be used to translate the constraints. Moreover, we need to perform a translation from the current format of the model (XML) to the SMT-LIB input format. Details about the implementation and the used SMT solver will be presented in Chapter~\ref{chap:practice}.\\
+
+No matter how the overall procedure will look like, we need to encode the concepts \emph{class}, \emph{attribute} and \emph{instance}, because all of them can appear in XPath expressions of the dependencies and are fundamental concepts of the model. Thus, we will start by explaining the translation of the formerly mentioned concepts.
+
+%TODO point out that also other concepts, such as pc-relations and bi-directional associations were planned to be encoded into SMT-LIB
+
 
 \section{SMT Translation of General Concepts}\label{sec:smt-transl-general}
 
 
 \subsection*{Data Types}
-We will start to translate the basic building blocks of an attribute, which are the data-types. We observe that we need a \verb|null| value for each attribute regardless the type. Thus, we need to model a type, which is exclusively \verb|null| or \verb|t|, where the latter one can be of any type. A declarative data-type including \emph{type parameters} is the desired technique. This concept is used in many functional programming languages. The desired data-type (e.g., in Haskell) would look like
+We will start to translate the building blocks of an attribute, which are the data-types. We observe that we need a \verb|null| value for each attribute regardless the type, because of the possibly used properties. Thus, we need to model a type, which is exclusively \verb|null| or \verb|t|, where \verb|t| can be of any type. A declarative data-type including \emph{type parameters} is the desired technique. This concept is used in many functional programming languages. The desired data-type (e.g., in Haskell) would look like
 \begin{verbatim}
 data Attribute t = Null | Value t
 \end{verbatim}
-In the SMT-LIB domain, we have the same possibility. We can model this distinct type in a similar fashion. Before showing the exact syntax of this data-type in the SMT-LIB input language, we will examine the different data-types further:
+In the SMT-LIB domain, we have the same possibility. We can model this distinct type in a similar fashion. Before showing the SMT-LIB syntax of this data-type, we will examine the different data-types further:
 
 \begin{itemize}
- \item \verb|boolean| and \verb|int| can be directly mapped to a SMT solver, since \verb|Int| and \verb|Bool| are the most fundamental data-types and supported by almost every SMT solver.
+ \item \verb|boolean| and \verb|int| can be directly mapped to corresponding SMT-LIB types, since \verb|Int| and \verb|Bool| are the most fundamental data-types and supported by all SMT solvers.
 
 
- \item \verb|string| can not be directly mapped, because almost all SMT implementations lack of a built-in theory for strings. Current research is focused on this aspect and examine the theory as well as the corresponding decision procedures.\\
+ \item \verb|string| can not be directly mapped, because the current support for a corresponding theory is missing in almost all SMT implementations. Current research is focused on this aspect and examine the theory as well as the corresponding decision procedures.\\
 
  An idea would be, to develop an own theory built upon other theories. However, since the development of such a string-theory is a rather time-consuming and error-prone task, we will leave this task for a future work and will now explain workarounds for \verb|string|s. They can be subdivided into 3 groups:
  \begin{enumerate}
-  \item \textbf{Key attributes:} Each key attribute of a class is represented as a string. The string can be arbitrarily chosen, with the only requirement, that it remains unique for the same parent-instance. Thus, integers would be appropriate for this purpose. After the SMT-solver runs, we will retrieve the same value, but we then can replace it with actual string values. This can be done with a simple mapping by the help of a hash-table or similar.
+  \item \textbf{Key attributes:} Each key attribute of a class is a string. The string can be arbitrarily chosen, with the only requirement, that it is unique within the same parent-instance. Thus, integers would be appropriate for this purpose. After the SMT-solver runs, one could even think about replacing the integers with real string values taken from a list of strings. This can be easily done with a hash-map.
  
-  \item \textbf{Regular expressions:} Such attributes are further constrained with a \verb|validValues| property and are problematic, because we cannot use the SMT solver to find values for them because of the lack of a theory for strings and especially regular expressions. However, it is also possible to use an external list of strings and then use the indexes of those strings which are valid. Thus, we evaluate the valid strings of the present list in a previous step and yield a list of integers, representing the indexes of those strings which are valid. For example, consider the following list of strings: \begin{verbatim}
+  \item \textbf{Regular expressions:} Such attributes are further constrained with a \verb|validValues| property and are problematic, because we cannot use the SMT solver to find values for them because of the lack of a theory for strings and especially regular expressions. However, it is also possible to use an external list of strings and then use the indexes of those strings which are valid. Thus, we evaluate the valid strings of the present list in a previous step and yield a list of integers, representing the indexes of those strings which are valid. For example, consider the following list of strings representing IPv4-addresses: \begin{verbatim}
  ['1.2.3.4/32', '5.6.7.8/32', '127.0.0.1/16', 
  '192.168.0.14/32']
  \end{verbatim}
   Applying the regular expression \verb|'.+/32'| to each element in it and returning its corresponding index in the list only if it matches the regular expression, would yield the integer list \verb|[0, 1, 3]|. Thus, for those strings in the list, which fulfill the regular expressions, we gather the index and get a new integer-list containing the indexes of valid values.
  
-  \item \textbf{Free strings:} Since the entered value is not constrained, we can generate them randomly or by using the same method as seen before. Further, it is highly unlikely that such an attribute will be further constrained by dependencies. For the case, that such a string-attribute is further constrained with a \verb|length| attribute, one could think about using an integer for it. Otherwise a constant integer value would be enough.
+  \item \textbf{Free strings:} Since the entered value of a free string is not constrained, we can generate them randomly or by using the same method as seen before. Further, it is highly unlikely that such an attribute will be further constrained by dependencies. For the case, that such a string-attribute is further constrained with a \verb|length| attribute, one could think about using an integer for it. Otherwise a constant integer value would be enough.
 \end{enumerate}
 
 
- \item As we have seen in Sections~\ref{subsec:unique} and \ref{subsec:bidir}, the \verb|moRef| data-type is like a pointer to one instance in the overall configuration. Thus, we need to have a globally unique identification for each instance. Since we decided to use integers in the SMT-LIB encoding, we require those integers to be \emph{globally unique}. As a result, \verb|moRef| attributes will also be encoded as integers.
+ \item As we have seen in Sections~\ref{subsec:unique} and \ref{subsec:bidir}, the \verb|moRef| data-type acts like a pointer to one instance in the overall configuration. Thus, we need to have a globally unique identification for each instance. Since we decided to use integers in the SMT-LIB encoding, we require those integers to be \emph{globally unique}. As a result, \verb|moRef| attributes will also be encoded as integers.
 
  \item \verb|enum|s have distinct integer-values in its members and thus, they can be used directly as integers in SMT-LIB.\\
 
@@ -51,7 +51,7 @@ In the SMT-LIB domain, we have the same possibility. We can model this distinct 
  \item \verb|struct|s can be seen as an own \verb|class|. Each member follows the rules defined so far.
 \end{itemize}
 
-We have seen that all data-types can be mapped to integers. Also for the \verb|boolean| type this is possible, if we follow the usual transformation of \verb|true| and \verb|false| to 1 and 0.\\
+We have seen that all data-types can be mapped to integers. This applies also for the \verb|boolean| type, if we apply the mapping from \verb|true| to 1 and \verb|false| to 0.\\
 
 Thus, the algebraic data-type seen before can be translated directly to a corresponding SMT-LIB type
 \begin{verbatim}
@@ -64,15 +64,18 @@ Thus, the algebraic data-type seen before can be translated directly to a corres
 \end{verbatim}
 SMT solvers are aware of algebraic data-types, by using the theory of \emph{uninterpreted functions}. This theory is primarily used to allow the definition of functions. 
 
-For further restrictions of data-types, e.g., \verb|uint8|, we would need to constraint the used data-type further. In a purely object-oriented fashion one would consider to create a sub-type of the \verb|Int| type. However, this is not possible at the moment. \verb|Int| is a sort, i.e., a pre-defined type. With a sort usually comes a whole theory, since the decision procedures need to know the properties of the abstract, newly introduced sort. Thus, creating a \verb|uint8| sort, we would need to repeat the theory of integers and add the allowed range, in this case $-2^7 \ldots 2^7 - 1$. 
+For further restrictions of data-types, e.g., \verb|uint8|, we would need to constraint the used data-type further. In a purely object-oriented fashion one would consider to create a sub-type of the \verb|Int| type. However, this is not possible, since \verb|Int| is a sort, i.e., a pre-defined type. With a sort usually comes a whole theory, since the decision procedures need to know the properties of such an abstract, newly introduced sort. Thus, creating a \verb|uint8| sort, would imply to repeat the theory of integers and add the allowed range, in this case $[-2^7..2^7 - 1]$. 
+
 Some SMT solvers allow the definition of new sorts, but they are an arbitrary concept with no notion about relations and allowed operations on them. In those cases, the decision procedure is used to find a universe for this sort. This mechanism is not exactly what we need here. \\
+
+Thus, to support further restrictions in value ranges, those have to be applied to all instances separately.
 
 %The used work-around has the humble duty to constraint each attribute of each \emph{instance}. This sounds like a performance overhead. 
 
 \subsection*{Classes}
-To model a whole class of the model, we can use the same approach as before. We use a declarative data-type, but this time without the exclusive \verb|null| value. \\
+To model a whole class of the model, we can use the same approach as before. We use a declarative data-type, but this time without the exclusive \verb|null| value. 
 
-\begin{figure}[htb]
+\begin{figure}[tb]
 \centering
 \begin{tikzpicture}
 \node [attrClass] (vlanport) {
@@ -97,12 +100,12 @@ To visualize this, consider Figure~\ref{fig:singleClass}, with the single class 
                         (mk_VlanPort 
                          (vlanPort Attribute)
                          (vlanId Attribute)
-	                     (isTagged Attribute)
+                         (isTagged Attribute)
 	                    )
 	                  ))
 )
 \end{verbatim}
-Denote, that we do not need to have the attribute \verb|reservedBy| on the class, since it is a \verb|readOnly| attribute. We can also see, that the MIM name takes part of the overall name to avoid name clashes for the same class name in other MIMs.\\
+Note that we do not need to have the attribute \verb|reservedBy| on the class, since it is a \verb|readOnly| attribute. We can also see, that the MIM name is part of the overall name to avoid name clashes for the same class name in other MIMs.\\
 
 \subsection*{Instances}
 Finally, the encoding for \emph{instances} is rather simple, by using a constant function. Since each constant needs to be uniquely accessible by the SMT solver, we agreed on the following name schema (assuming that a key 1 was already assigned on this instance):
@@ -111,14 +114,14 @@ Finally, the encoding for \emph{instances} is rather simple, by using a constant
 (declare-fun vlanPort__VlanPort___1 () (vlanPort__VlanPort))
 \end{verbatim}
 
-More general, we agreed on the name-schema
+More general, we agreed on the following name-schema for all instances
 \begin{verbatim}
 <mim-name>__<class-name>___<key>
 \end{verbatim}
 
-
+%TODO maybe point out that also pc-relations and bi-dirs were part of the SMT-Translation, but it did not work because...
 %TODO here we need to specify exactly how we approach the problem and why!!!
-\section{General Approach}
+\section{Divide and Conquer}
 
 As mentioned before, we will model the dependencies as well as the used classes and instances with the use of the SMT-LIB input language. Once we have done this, we will run the SMT solver and check for satisfiability. If the overall encoding is satisfiable, we can retrieve an \emph{assignment} from the SMT solver. The assignment contains values for the different attributes of those instances involved in at least one dependency. That means, we get a partial test-case from the SMT solver's assignment. \\
 
@@ -132,7 +135,7 @@ However, there are still 3 remaining problems to solve:
 
 %TODO something is missing here
 
-\section{Structural Characteristics}\label{sec:structure-fm}
+\subsection{Structural Characteristics}\label{sec:structure-fm}
 
 As denoted before, the structural characteristics involve any hierarchical relations as well as cardinalities. We decided to achieve a desirable ``structural coverage''. That means, that the resulting set of configurations are able to explore a desirable amount of selected cardinality-values from the initial cardinality-range. This should involve also combinations between selected cardinality values.\\
 
@@ -141,13 +144,13 @@ Czarnecki et. al.~\cite{card-based-feature-models-formalization} define \emph{st
 They define \emph{specialization steps} and categorize them into 6 groups. We will follow the \emph{feature cloning} approach. 
 
 \begin{definition}{\textbf{Feature Cloning:}}
-Given a cardinality of the form $[a..b]$ with $a < b$. Then we can select a $m \in [a..b]$, and re-define the existing cardinality to $[0..(b-m)]$. 
+Let $[a..b]$ be a cardinality with $a < b$. Then we can select a $m \in [a..b]$, and re-define the existing cardinality to $[m..m][(a-m)..(b-m)]$. 
 \end{definition}
 
 The article does not explain the exact implementation of the cloning step. Moreover the selection of $m$ is not specified further. To achieve a desired ``structural coverage'', we need to select $m$ in a specific manner in each step of the process. We decided to define the staged configuration further and express the stages in a different form. 
 
 \begin{definition}{\textbf{Staged Configuration using Feature Cloning:}}\label{def:staged}
-Let $\mathcal{I} = [a..b]$ be a cardinality, $s$ denote the number of stages (test-cases) and $1 \leq i \leq s$. Further, let $m_{i} \in \mathcal{I}$ be a cardinality of the test-case $i$. Then for all $1 \leq j < j' \leq s$ we require $m_{j'} = m_j + x$. We call $x$ the \emph{skip-size}.
+Let $[a..b]$ be a cardinality, $s$ denote the number of stages (test-cases) and $1 \leq i \leq s$. Further, let $m_{i} \in [a..b]$ be a cardinality of the test-case $i$. Then for all $1 \leq j < j' \leq s$ we require $m_{j'} = m_j + x$. We call $x$ the \emph{skip-size}.
 \end{definition}
 
 $m_i$ is the selected value of the cardinality. It gives the number of cloned instances. $x$ indicates which parts of the cardinality will be skipped. It can be seen, that $x$ could vary for each stage as well as for each cardinality. For our purpose we assume a constant $x$. 
@@ -169,10 +172,10 @@ Assume a cardinality $[0..10]$. Then the test-cases in Table~\ref{tab:exTc} are 
 We can observe, that $x = 1$ always leads to $100 \%$ coverage, since we will produce test-cases for all possible cardinality values. $x = (b-a)$ yields the lowest amount of test-cases involving only two border-cases $a$ and $b$.
 \end{example}
 
-We will later see how the implementation of this concept is done.
+We will later see how the implementation uses this concept.
 
 
-\section{Dependencies}\label{sec:mconstraints}
+\subsection{Dependencies}\label{sec:mconstraints}
 
 As explained in Section~\ref{chap:constraints}, we will use a subset of XPath expressions and thus we need to translate them into SMT-LIB assertions. 
 
@@ -228,9 +231,9 @@ Path expressions represent the structural dependencies of a test-case and thus, 
 
 
 
-\section{Unconstrained Attributes}\label{sec:nonconstraint}
+\subsection{Unconstrained Attributes}\label{sec:nonconstraint}
 
-Unconstrained attributes do not appear in any constraint and thus, the values found by the SMT solver are less interesting for us since it can take any value. One possibility to achieve different values is, \verb|(distinct ...)|, which ensures difference in values of instances and also attribute values. However, the SMT solver can not achieve a certain goal in terms of a combinatorial coverage. We will now introduce a concept which tries to achieve this.
+Unconstrained attributes do not appear in any constraint and thus, the values found by the SMT solver are less interesting for us since it can take any value. One possibility to achieve different values is, \verb|(distinct ...)|, which ensures difference in values of instances and also attribute values. However, the SMT solver can not achieve a certain goal in terms of a \emph{combinatorial coverage}. We will now introduce this concept.
 
 \subsection{Combinatorial Testing}\label{subsec:combinatorial-testing}
 
@@ -307,7 +310,7 @@ Steps 3 and 4 are applied to each abstract test-case.
 
 \subsection{Theoretical Considerations}\label{subsec:theor-eval}
 
-An important aspect when trying to apply theoretical results to industry, is to make a complexity analysis. Since most of the theories in SMT solvers are NP-hard, decidable or even undecidable, such an analysis can give reasons to change the encoding or even the overall approach. By evaluating the current achievements, one can observe that most of the theories become at least decidable by cutting of quantifiers. This is an important observation and will be considered in our case.
+When trying to apply theoretical results to industry, an important aspect is a complexity analysis. Since most of the theories in SMT solvers are NP-hard, decidable or even undecidable, such an analysis can give reasons to change the encoding or even the overall approach. By evaluating the current achievements, one can observe that most of the theories become at least decidable by omitting quantifiers. This is an important observation and will be considered in our case.
 We will now look at the different facets in our encoding and investigate the complexity. Later, in Chapter~\ref{chap:evaluation} we will examine these parts further in terms of the used SMT solver in practice.
 
 
@@ -325,7 +328,7 @@ Determining the complexity of the congruence closure algorithm has been proven t
 
 \subsubsection*{Inductive Data-types}
 
-A \emph{inductive data-type}~\cite{smt-book} such as used in our scenario uses \emph{constructors}, and possible \emph{testers} and \emph{selectors}. The  $\Sigma$-signature of inductive data-types associates a function symbol with each constructor and selector and one predicate with each tester~\cite{smt-book}. Oppen provided an algorithm to decide over inductive data-types with one constructor in polynomial time. The general problem of inductive data-types remains NP hard, but since data-types were shown to be handy in practice, reasonably efficient algorithms exist.
+An \emph{inductive data-type}~\cite{smt-book} such as used in our scenario is based on  \emph{constructors}, and possible \emph{testers} and \emph{selectors}. The  $\Sigma$-signature of inductive data-types associates a function symbol with each constructor and selector and one predicate with each tester~\cite{smt-book}. Oppen provided an algorithm to decide over inductive data-types with one constructor in polynomial time. The general problem of inductive data-types remains NP hard, but since data-types were shown to be handy in practice, reasonably efficient algorithms exist.
 
 \subsubsection*{Arithmetic}
 The general arithmetic can be deduced from \emph{presburger arithmetic}, a calculus with the only symbols $\{\mathbb{N}, +, -, \leq\}$. Ground satisfiability of presburger arithmetic over the real numbers is decidable in polynomial time, whether using ground formulas over $\mathbb{R}$ is NP-complete~\cite{smt-book}.

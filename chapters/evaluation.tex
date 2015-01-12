@@ -6,7 +6,7 @@ After we have seen the implementation of the tool, we will describe how the resu
 
 \section{Final Comments on the Theoretical Evaluation}
 
-As already stated in Section~\ref{subsec:theor-eval}, we will now complete the work by examining the complexity of the different SMT facets on the used SMT solver z3. \\
+As already stated in Section~\ref{subsec:theor-eval}, we will now complete the work by examining the complexity of the different S{\tiny M}T facets on the used SMT solver z3. \\
 
 There are no current information available on the reasoning system behind z3 in terms of \emph{uninterpreted functions}. However, it can be assumed that the authors decided to implement a congruence closure algorithms, due to several publications and slides on the web. They further 
 mention an improvement of the original algorithm~\cite{z3-solver}, called Ackermann-reduction, which makes congruence closure polynomially solvable.\\
@@ -133,7 +133,7 @@ timeout & 20 min & 20 min & 20 min\\ \hline
 
 \section{Integration Evaluation}
 
-From a software-engineering point of view, the tool has to be used, whenever the MIM model changes. 
+From a software-engineering point of view, the tool has to be used, whenever the ECIM model changes. 
 This will happen at the project initialization phase, after the requirement analysis has been performed and the system architecture has been decided. 
 Further, it could be the case that the model changes during the development. In this case, after the change of the model-files the tool could sit right at the version control system and create test-cases, if the model files are committed to a specific repository. 
 The drawback of this integration is, that one might have only a part of the model and not the overall tree.
